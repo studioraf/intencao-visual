@@ -37,7 +37,7 @@ function TelaAuth({ onLogin }) {
     setLoading(true)
     setErro('')
     try {
-      const url = modo === 'login' ? 'http://localhost:8000/login' : 'http://localhost:8000/cadastro'
+      const url = modo === 'login' ? 'https://intencao-visual-production.up.railway.app/login' : 'https://intencao-visual-production.up.railway.app/cadastro'
       const body = modo === 'login' ? { email, senha } : { nome, email, senha }
       const res = await fetch(url, {
         method: 'POST',
@@ -404,7 +404,7 @@ export default function App() {
   async function gerarKit() {
     setLoading(true)
     try {
-      const res = await fetch('http://localhost:8000/gerar-kit', {
+      const res = await fetch('https://intencao-visual-production.up.railway.app/gerar-kit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user.token}` },
         body: JSON.stringify({ emocao, formato })
