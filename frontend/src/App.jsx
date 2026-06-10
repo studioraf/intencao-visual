@@ -401,6 +401,9 @@ export default function App() {
 
   if (!user) return <TelaAuth onLogin={login} />
 
+  const [aba, setAba] = useState('gerar')
+const [meuKits, setMeusKits] = useState([])
+
   async function gerarKit() {
     setLoading(true)
     try {
@@ -427,9 +430,58 @@ export default function App() {
 
   const active = resultado || preview
 
+  async function carregarKits() {
+    try {
+      const res = await fetch('https://intencao-visual-production.up.railway.app/meus-kits', {
+        headers: { 'Authorization': `Bearer ${user.token}` }
+      })
+      const data = await res.json()
+      setMeusKits(data)
+    } catch (e) {
+      console.log('erro ao carregar kits')
+    }
+  }
+
   return (
     <div style={{ minHeight: '100vh', background: active ? `radial-gradient(ellipse at 30% 20%, ${active.glow}18 0%, #0a0a0f 60%)` : 'radial-gradient(ellipse at 20% 50%, #1a0533 0%, #0a0a0f 60%)', color: '#fff', fontFamily: "'Segoe UI', sans-serif", transition: 'background 1.2s ease' }}>
       <div style={{ maxWidth: '720px', margin: '0 auto', padding: '60px 28px', position: 'relative', zIndex: 1 }}>
+
+{/* Navegação */}
+<div style={{ display: 'flex', gap: '8px', marginBottom: '32px' }}>
+  <button onClick={() => setAba('gerar')} style={{ padding: '8px 20px', borderRadius: '999px', border: `1px solid ${aba === 'gerar' ? '#e94560' : 'rgba(255,255,255,0.1)'}`, background: aba === 'gerar' ? 'rgba(233,69,96,0.15)' : 'transparent', color: aba === 'gerar' ? '#e94560' : 'rgba(255,255,255,0.4)', fontSize: '0.8rem', cursor: 'pointer', fontWeight: aba === 'gerar' ? '700' : '400' }}>
+    Gerar Kit
+  </button>
+  <button onClick={() => { setAba('historico'); carregarKits() }} style={{ padding: '8px 20px', borderRadius: '999px', border: `1px solid ${aba === 'historico' ? '#e94560' : 'rgba(255,255,255,0.1)'}`, background: aba === 'historico' ? 'rgba(233,69,96,0.15)' : 'transparent', color: aba === 'historico' ? '#e94560' : 'rgba(255,255,255,0.4)', fontSize: '0.8rem', cursor: 'pointer', fontWeight: aba === 'historico' ? '700' : '400' }}>
+    DNA Visual
+  </button>
+</div>
+
+{aba === 'historico' && (
+  <div>
+    <h2 style={{ fontSize: '1.4rem', fontWeight: '800', color: '#fff', marginBottom: '24px' }}>DNA Visual</h2>
+    {meusKits.length === 0 ? (
+      <div style={{ textAlign: 'center', padding: '60px', color: 'rgba(255,255,255,0.3)' }}>
+        <p style={{ fontSize: '2rem', marginBottom: '12px' }}>🎬</p>
+        <p>Nenhum kit gerado ainda.</p>
+      </div>
+    ) : (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        {meusKits.map(kit => (
+          <div key={kit.id} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', padding: '20px 24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <p style={{ fontSize: '0.6rem', letterSpacing: '2px', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', marginBottom: '6px' }}>{kit.formato}</p>
+                <p style={{ fontSize: '1rem', fontWeight: '700', color: '#fff', marginBottom: '4px' }}>{kit.estilo}</p>
+                <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', fontStyle: 'italic' }}>"{kit.emocao}"</p>
+              </div>
+              <p style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.2)' }}>{new Date(kit.criado_em).toLocaleDateString('pt-BR')}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+)}
 
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '44px' }}>
