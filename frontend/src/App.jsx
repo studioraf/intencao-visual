@@ -413,8 +413,24 @@ const [meuKits, setMeusKits] = useState([])
         body: JSON.stringify({ emocao, formato })
       })
       const data = await res.json()
+      async function gerarKit() {
+    setLoading(true)
+    try {
+      const res = await fetch('https://intencao-visual-production.up.railway.app/gerar-kit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user.token}` },
+        body: JSON.stringify({ emocao, formato })
+      })
+      const data = await res.json()
       const local = detectPreset(emocao) || DEFAULT
-      setResultado({ ...data, bg: local.bg, glow: local.glow, cenas: local.cenas })
+      setResultado({ ...local, ...data, bg: local.bg, glow: local.glow, cenas: local.cenas })
+    } catch {
+      const local = detectPreset(emocao) || DEFAULT
+      setResultado(local)
+    } finally {
+      setLoading(false)
+    }
+  }
     } catch {
       const local = detectPreset(emocao) || DEFAULT
       setResultado(local)
