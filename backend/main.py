@@ -7,6 +7,9 @@ from sqlalchemy.orm import sessionmaker
 from datetime import datetime
 from auth import hash_senha, verificar_senha, criar_token, verificar_token
 import json
+import stripe
+import os
+stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
 
 app = FastAPI()
 
@@ -125,6 +128,31 @@ def detectar_preset(emocao: str):
     return PRESETS["poder"]
 
 # Rotas
+
+@app.post("/criar-assinatura")
+def criar_assinatura(email: str = Depends(verificar_token)):
+    try:
+        cliente = stripe.Customer.create(email=email)
+        sessao = stripe.checkout.Session.create(
+            customer=cliente.id,
+            payment_method_types=["card"],
+            line_items=[{
+                "price_data": {
+                    "currency": "usd",
+                    "product_data": { "name": "Kit de Intenção Visual Pro" },
+                    "unit_amount": 900,
+                    "recurring": { "interval": "month" },
+                },
+                "quantity": 1,
+            }],
+            mode="subscription",
+            success_url="https://intencao-visual.vercel.app?plano=pro",
+            cancel_url="https://intencao-visual.vercel.app",
+        )
+        return { "url": sessao.url }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
 @app.get("/")
 def root():
     return {"status": "Kit de Intenção Visual API rodando"}
