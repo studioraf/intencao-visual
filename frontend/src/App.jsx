@@ -426,6 +426,19 @@ export default function App() {
     else { await audioEngine.start(preset.audio.tipo, preset.bpm); setAudioOn(true) }
   }
 
+  async function assinarPro() {
+    try {
+      const res = await fetch('https://intencao-visual-production.up.railway.app/criar-assinatura', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${user.token}` }
+      })
+      const data = await res.json()
+      if (data.url) window.location.href = data.url
+    } catch (e) {
+      alert('Erro ao iniciar checkout. Tente novamente.')
+    }
+  }
+
   const active = resultado || preview
 
   return (
@@ -439,7 +452,10 @@ export default function App() {
           </div>
           <div style={{ textAlign: 'right' }}>
             <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', marginBottom: '6px' }}>Olá, {user.nome}</p>
-            <button onClick={logout} style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '999px', padding: '6px 14px', color: 'rgba(255,255,255,0.4)', fontSize: '0.75rem', cursor: 'pointer' }}>Sair</button>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <button onClick={assinarPro} style={{ background: 'linear-gradient(135deg, #7c3aed, #e94560)', border: 'none', borderRadius: '999px', padding: '6px 16px', color: '#fff', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer', letterSpacing: '1px' }}>⚡ Pro</button>
+              <button onClick={logout} style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '999px', padding: '6px 14px', color: 'rgba(255,255,255,0.4)', fontSize: '0.75rem', cursor: 'pointer' }}>Sair</button>
+            </div>
           </div>
         </div>
 
