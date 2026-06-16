@@ -89,6 +89,14 @@ function OrbField() {
         @keyframes tiltIn { from{opacity:0;transform:perspective(800px) rotateX(20deg) translateY(40px)} to{opacity:1;transform:perspective(800px) rotateX(0deg) translateY(0)} }
         @keyframes glowPulse { 0%,100%{opacity:0.5} 50%{opacity:1} }
         @keyframes glitchA { 0%,94%,100%{opacity:0;transform:none} 95%{opacity:0.8;transform:translateX(-3px) skewX(-5deg)} 97%{opacity:0.6;transform:translateX(3px) skewX(3deg)} 99%{opacity:0;transform:none} }
+        @keyframes scanline { 0%{transform:translateY(-100%)} 100%{transform:translateY(100vh)} }
+        @keyframes colorShift { 0%{filter:hue-rotate(0deg)} 100%{filter:hue-rotate(360deg)} }
+        @keyframes cameraMove { 0%{transform:scale(1) translate(0,0)} 25%{transform:scale(1.05) translate(-2%,-1%)} 50%{transform:scale(1.08) translate(1%,2%)} 75%{transform:scale(1.03) translate(2%,-2%)} 100%{transform:scale(1) translate(0,0)} }
+        @keyframes flashCut { 0%,90%{opacity:1} 91%,95%{opacity:0} 96%,100%{opacity:1} }
+        @keyframes bokeh { 0%,100%{filter:blur(8px) brightness(1.2)} 50%{filter:blur(12px) brightness(1.5)} }
+        @keyframes neonFlicker { 0%,100%{opacity:1} 92%{opacity:1} 93%{opacity:0.4} 94%{opacity:1} 97%{opacity:0.6} 98%{opacity:1} }
+        @keyframes filmGrain { 0%{opacity:0.03} 50%{opacity:0.08} 100%{opacity:0.03} }
+        @keyframes previewSlide { from{opacity:0;transform:translateX(20px)} to{opacity:1;transform:translateX(0)} }
       `}</style>
     </div>
   )
@@ -126,6 +134,260 @@ function GlitchText({ text, style }) {
   )
 }
 
+// ── Pré-visualização interativa em tempo real ─────────────────────────────────
+function CinematicPreview({ preset, formato }) {
+  const canvasRef = useRef(null)
+  const frameRef = useRef(0)
+  const timeRef = useRef(0)
+  const fmt = FORMATOS[formato]
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    const W = canvas.width = fmt.w
+    const H = canvas.height = fmt.h
+    const bpm = preset.bpm
+    const msPerBeat = 60000 / bpm
+    const cortes = parseInt(preset.ritmo) || 20
+    const msPorCorte = 60000 / cortes
+
+    let raf
+    let cenaIdx = 0
+    let lastCut = 0
+    let flash = 0
+    let grain = []
+    for (let i = 0; i < 200; i++) grain.push({ x: Math.random() * W, y: Math.random() * H, a: Math.random() })
+
+    function hexToRgb(hex) {
+      const r = parseInt(hex.slice(1, 3), 16)
+      const g = parseInt(hex.slice(3, 5), 16)
+      const b = parseInt(hex.slice(5, 7), 16)
+      return { r, g, b }
+    }
+
+    function draw(ts) {
+      const dt = ts - timeRef.current
+      timeRef.current = ts
+
+      // Flash no corte
+      if (ts - lastCut > msPorCorte) {
+        lastCut = ts
+        cenaIdx = (cenaIdx + 1) % preset.cenas.length
+        flash = 1
+      }
+      if (flash > 0) flash = Math.max(0, flash - dt / 80)
+
+      ctx.clearRect(0, 0, W, H)
+
+      // Fundo gradiente com movimento de câmera
+      const moveX = Math.sin(ts / 4000) * 8
+      const moveY = Math.cos(ts / 5000) * 5
+      const scale = 1 + Math.sin(ts / 3000) * 0.03
+
+      ctx.save()
+      ctx.translate(W / 2 + moveX, H / 2 + moveY)
+      ctx.scale(scale, scale)
+      ctx.translate(-W / 2, -H / 2)
+
+      // Gradiente de fundo
+      const bg = ctx.createLinearGradient(0, 0, W, H)
+      bg.addColorStop(0, preset.bg[0])
+      bg.addColorStop(0.5, preset.bg[1])
+      bg.addColorStop(1, preset.bg[2])
+      ctx.fillStyle = bg
+      ctx.fillRect(0, 0, W, H)
+
+      // Grade de luz
+      ctx.strokeStyle = preset.glow + '08'
+      ctx.lineWidth = 0.5
+      for (let x = 0; x < W; x += 20) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke() }
+      for (let y = 0; y < H; y += 20) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke() }
+
+      // Barras de paleta animadas na base
+      preset.paleta.forEach((cor, i) => {
+        const barH = (H * 0.25) * (0.4 + 0.6 * Math.abs(Math.sin(ts / msPerBeat + i)))
+        const rgb = hexToRgb(cor)
+        ctx.fillStyle = `rgba(${rgb.r},${rgb.g},${rgb.b},0.7)`
+        const bw = W / preset.paleta.length
+        ctx.beginPath()
+        ctx.roundRect(i * bw + 2, H - barH, bw - 4, barH, [4, 4, 0, 0])
+        ctx.fill()
+      })
+
+      // Elemento central da cena
+      const cena = preset.cenas[cenaIdx]
+      ctx.restore()
+
+      // Enquadramento — linhas de composição
+      ctx.strokeStyle = preset.glow + '30'
+      ctx.lineWidth = 1
+      // Regra dos terços
+      ctx.setLineDash([4, 4])
+      ctx.beginPath(); ctx.moveTo(W / 3, 0); ctx.lineTo(W / 3, H); ctx.stroke()
+      ctx.beginPath(); ctx.moveTo((W / 3) * 2, 0); ctx.lineTo((W / 3) * 2, H); ctx.stroke()
+      ctx.beginPath(); ctx.moveTo(0, H / 3); ctx.lineTo(W, H / 3); ctx.stroke()
+      ctx.beginPath(); ctx.moveTo(0, (H / 3) * 2); ctx.lineTo(W, (H / 3) * 2); ctx.stroke()
+      ctx.setLineDash([])
+
+      // Vinheta
+      const vig = ctx.createRadialGradient(W / 2, H / 2, H * 0.2, W / 2, H / 2, H * 0.8)
+      vig.addColorStop(0, 'transparent')
+      vig.addColorStop(1, 'rgba(0,0,0,0.7)')
+      ctx.fillStyle = vig
+      ctx.fillRect(0, 0, W, H)
+
+      // Grain cinematográfico
+      ctx.fillStyle = `rgba(255,255,255,${0.02 + Math.random() * 0.03})`
+      grain.forEach(g => {
+        g.x += (Math.random() - 0.5) * 0.5
+        g.y += (Math.random() - 0.5) * 0.5
+        if (g.x < 0) g.x = W; if (g.x > W) g.x = 0
+        if (g.y < 0) g.y = H; if (g.y > H) g.y = 0
+        ctx.fillRect(g.x, g.y, Math.random() * 1.5, Math.random() * 1.5)
+      })
+
+      // HUD — info da cena
+      ctx.fillStyle = 'rgba(0,0,0,0.55)'
+      ctx.fillRect(0, H - 40, W, 40)
+
+      ctx.fillStyle = preset.glow
+      ctx.font = `bold ${Math.min(9, W * 0.04)}px monospace`
+      ctx.fillText(cena.cam.toUpperCase(), 6, H - 26)
+
+      ctx.fillStyle = 'rgba(255,255,255,0.7)'
+      ctx.font = `${Math.min(8, W * 0.035)}px monospace`
+      ctx.fillText(cena.desc, 6, H - 12)
+
+      // BPM pulse dot
+      const beatPhase = ((ts % msPerBeat) / msPerBeat)
+      const dotR = beatPhase < 0.15 ? 5 : 3
+      ctx.fillStyle = beatPhase < 0.15 ? preset.glow : preset.glow + '66'
+      ctx.shadowBlur = beatPhase < 0.15 ? 12 : 0
+      ctx.shadowColor = preset.glow
+      ctx.beginPath()
+      ctx.arc(W - 12, H - 28, dotR, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.shadowBlur = 0
+
+      ctx.fillStyle = preset.glow + 'aa'
+      ctx.font = `bold ${Math.min(8, W * 0.035)}px monospace`
+      ctx.fillText(`${bpm} BPM`, W - 44, H - 12)
+
+      // Flash de corte
+      if (flash > 0) {
+        ctx.fillStyle = `rgba(255,255,255,${flash * 0.6})`
+        ctx.fillRect(0, 0, W, H)
+      }
+
+      // Borda glow
+      ctx.strokeStyle = preset.glow + '44'
+      ctx.lineWidth = 2
+      ctx.strokeRect(1, 1, W - 2, H - 2)
+
+      // Label de formato
+      ctx.fillStyle = 'rgba(0,0,0,0.6)'
+      ctx.fillRect(6, 6, 70, 18)
+      ctx.fillStyle = preset.glow
+      ctx.font = `bold 7px monospace`
+      ctx.fillText(`${fmt.ratio} · ${fmt.label.toUpperCase()}`, 10, 18)
+
+      frameRef.current = raf = requestAnimationFrame(draw)
+    }
+
+    timeRef.current = performance.now()
+    raf = requestAnimationFrame(draw)
+    return () => cancelAnimationFrame(raf)
+  }, [preset, formato])
+
+  return (
+    <div style={{ position: 'relative', display: 'inline-block' }}>
+      <canvas ref={canvasRef}
+        style={{ borderRadius: '14px', display: 'block', boxShadow: `0 0 40px ${preset.glow}44, 0 0 80px ${preset.glow}22` }}
+      />
+      <div style={{ position: 'absolute', top: '8px', right: '8px', background: 'rgba(0,0,0,0.7)', borderRadius: '6px', padding: '3px 8px', fontSize: '7px', color: preset.glow, letterSpacing: '2px', fontFamily: 'monospace' }}>
+        ● AO VIVO
+      </div>
+    </div>
+  )
+}
+
+// ── Templates sugeridos ────────────────────────────────────────────────────────
+const TEMPLATES = [
+  { label: '⚡ Trap luxuoso', prompt: 'clipe estilo trap luxo cartier poder status', preset: 'poder' },
+  { label: '🌙 Noir misterioso', prompt: 'suspense dark noir thriller crime sombrio', preset: 'misterio' },
+  { label: '💜 Cyberpunk', prompt: 'cyberpunk neon futurista tech glitch matrix', preset: 'blade' },
+  { label: '🌹 Romance', prompt: 'romance amor suave intimidade saudade delicado', preset: 'romance' },
+  { label: '⚔️ Épico', prompt: 'épico guerra herói grandioso batalha destino', preset: 'epico' },
+  { label: '◻ Minimalista', prompt: 'minimalista clean moderno elegante simples', preset: 'minimalista' },
+]
+
+// ── Feedback emocional ─────────────────────────────────────────────────────────
+function FeedbackEmocional({ glow, kitId, token }) {
+  const [nota, setNota] = useState(null)
+  const [enviado, setEnviado] = useState(false)
+  const emojis = ['😕', '😐', '🙂', '😊', '🔥']
+
+  async function enviar(n) {
+    setNota(n)
+    setEnviado(true)
+    // Futuramente salvar no backend
+  }
+
+  if (enviado) return (
+    <div style={{ textAlign: 'center', padding: '16px', color: glow, fontSize: '0.85rem', fontWeight: '700' }}>
+      ✓ Obrigado pelo feedback!
+    </div>
+  )
+
+  return (
+    <div style={{ textAlign: 'center', padding: '20px' }}>
+      <p style={{ fontSize: '0.6rem', letterSpacing: '3px', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', marginBottom: '14px' }}>
+        🎯 Esse kit capturou sua emoção?
+      </p>
+      <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+        {emojis.map((e, i) => (
+          <button key={i} onClick={() => enviar(i + 1)}
+            style={{ fontSize: '1.5rem', background: nota === i + 1 ? `${glow}22` : 'transparent', border: `1px solid ${nota === i + 1 ? glow : 'rgba(255,255,255,0.1)'}`, borderRadius: '12px', padding: '8px 12px', cursor: 'pointer', transition: 'all 0.2s' }}
+            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.2)'}
+            onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+          >{e}</button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── Múltiplas variações ────────────────────────────────────────────────────────
+function VariacoesKit({ emocao, formato, onSelecionar, glow }) {
+  const lower = emocao.toLowerCase()
+  const matches = Object.values(PRESETS).filter(p =>
+    p.keywords.some(k => lower.includes(k))
+  ).slice(0, 3)
+
+  // Se não achou nada, não mostra
+  if (matches.length < 2) return null
+
+  return (
+    <div style={{ marginBottom: '20px', animation: 'fadeUp 0.4s ease both' }}>
+      <p style={{ fontSize: '0.6rem', letterSpacing: '3px', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', marginBottom: '12px' }}>
+        🎨 Variações detectadas — escolha uma:
+      </p>
+      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+        {matches.map((p, i) => (
+          <button key={i} onClick={() => onSelecionar(p)}
+            style={{ padding: '10px 18px', borderRadius: '999px', border: `1px solid ${p.glow}44`, background: `${p.glow}12`, color: p.glow, fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer', transition: 'all 0.2s', letterSpacing: '1px' }}
+            onMouseEnter={e => { e.currentTarget.style.background = `${p.glow}28`; e.currentTarget.style.transform = 'scale(1.05)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = `${p.glow}12`; e.currentTarget.style.transform = 'scale(1)' }}
+          >
+            {p.nome}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function ShareToast({ url, onClose }) {
   const [copied, setCopied] = useState(false)
   function copy() {
@@ -136,15 +398,16 @@ function ShareToast({ url, onClose }) {
   return (
     <div style={{ position: 'fixed', bottom: '32px', left: '50%', transform: 'translateX(-50%)', zIndex: 1000, animation: 'fadeUp 0.4s ease both', background: 'rgba(10,10,20,0.95)', border: '1px solid rgba(124,58,237,0.4)', borderRadius: '20px', padding: '20px 24px', backdropFilter: 'blur(20px)', minWidth: '320px', maxWidth: '480px', boxShadow: '0 0 60px rgba(124,58,237,0.3)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-        <p style={{ fontSize: '0.75rem', color: '#a78bfa', fontWeight: '700', letterSpacing: '2px', textTransform: 'uppercase' }}>Link gerado!</p>
-        <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', fontSize: '1rem' }}>x</button>
+        <p style={{ fontSize: '0.75rem', color: '#a78bfa', fontWeight: '700', letterSpacing: '2px', textTransform: 'uppercase' }}>🔗 Link gerado!</p>
+        <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', fontSize: '1rem' }}>✕</button>
       </div>
       <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
         <div style={{ flex: 1, background: 'rgba(255,255,255,0.05)', borderRadius: '10px', padding: '10px 14px', fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{url}</div>
         <button onClick={copy} style={{ padding: '10px 16px', borderRadius: '10px', border: 'none', background: copied ? 'rgba(0,255,150,0.2)' : 'linear-gradient(135deg, #7c3aed, #e94560)', color: '#fff', fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer', whiteSpace: 'nowrap' }}>
-          {copied ? 'Copiado!' : 'Copiar'}
+          {copied ? '✓ Copiado!' : 'Copiar'}
         </button>
       </div>
+      <p style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.2)', marginTop: '10px' }}>Qualquer pessoa com este link pode ver seu kit</p>
     </div>
   )
 }
@@ -205,9 +468,14 @@ function PaginaKitPublico({ shareId }) {
           ))}
         </div>
         <div style={{ textAlign: 'center', padding: '40px', background: `${glow}08`, border: `1px solid ${glow}22`, borderRadius: '24px' }}>
-          <p style={{ fontSize: '1.2rem', fontWeight: '900', color: glow, marginBottom: '8px' }}>Kit de Intenção Visual</p>
-          <p style={{ color: 'rgba(255,255,255,0.3)', marginBottom: '24px' }}>Neurocinematografia para criadores</p>
-          <button onClick={() => window.location.href = '/'} style={{ padding: '14px 36px', borderRadius: '999px', border: 'none', background: 'linear-gradient(135deg, #7c3aed, #e94560)', color: '#fff', fontWeight: '700', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '2px' }}>Criar meu kit gratis</button>
+          <p style={{ fontSize: '0.7rem', letterSpacing: '3px', color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', marginBottom: '12px' }}>Gerado com</p>
+          <p style={{ fontSize: '1.2rem', fontWeight: '900', color: glow, marginBottom: '8px', textShadow: `0 0 20px ${glow}` }}>Kit de Intenção Visual</p>
+          <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.85rem', marginBottom: '24px' }}>Neurocinematografia para criadores de vídeo</p>
+          <button onClick={() => window.location.href = '/'}
+            style={{ padding: '14px 36px', borderRadius: '999px', border: 'none', background: 'linear-gradient(135deg, #7c3aed, #e94560)', color: '#fff', fontSize: '0.9rem', fontWeight: '700', cursor: 'pointer', letterSpacing: '2px', textTransform: 'uppercase', boxShadow: '0 0 40px rgba(124,58,237,0.4)' }}
+            onMouseEnter={e => e.target.style.transform = 'scale(1.05)'}
+            onMouseLeave={e => e.target.style.transform = 'scale(1)'}
+          >Criar meu kit grátis →</button>
         </div>
       </div>
     </div>
@@ -217,12 +485,6 @@ function PaginaKitPublico({ shareId }) {
 function TelaLanding({ onEntrar }) {
   const t = useT()
   const isRTL = detectLang() === 'ar'
-  const [scrollY, setScrollY] = useState(0)
-  useEffect(() => {
-    const fn = () => setScrollY(window.scrollY)
-    window.addEventListener('scroll', fn)
-    return () => window.removeEventListener('scroll', fn)
-  }, [])
   const estilos = [
     { nome: 'Luxo Cinematográfico', emocao: 'Poder · Status · Inevitabilidade', cor: '#C8860A', bg: '#1a0800', icon: '◈' },
     { nome: 'Cyberpunk', emocao: 'Tensão · Adrenalina · Desorientação', cor: '#00fff7', bg: '#0d1f3c', icon: '◆' },
@@ -236,7 +498,7 @@ function TelaLanding({ onEntrar }) {
       <OrbField /><ParticleField color="#7c3aed" count={50} />
       <nav style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100, padding: '20px 48px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(5,5,8,0.8)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'linear-gradient(135deg, #7c3aed, #e94560)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', boxShadow: '0 0 20px rgba(124,58,237,0.5)' }}>◈</div>
+          <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'linear-gradient(135deg, #7c3aed, #e94560)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px' }}>◈</div>
           <div>
             <div style={{ fontSize: '0.6rem', letterSpacing: '3px', color: '#e94560', textTransform: 'uppercase' }}>{t.badge}</div>
             <div style={{ fontSize: '0.9rem', fontWeight: '800', color: '#fff' }}>Kit de Intenção Visual</div>
@@ -244,8 +506,8 @@ function TelaLanding({ onEntrar }) {
         </div>
         <button onClick={onEntrar} style={{ padding: '10px 28px', borderRadius: '999px', border: '1px solid rgba(124,58,237,0.5)', background: 'rgba(124,58,237,0.1)', color: '#a78bfa', fontSize: '0.85rem', cursor: 'pointer' }}>{t.enter}</button>
       </nav>
-      <section style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '120px 32px 80px', textAlign: 'center', position: 'relative', zIndex: 2, transform: `translateY(${scrollY * 0.3}px)` }}>
-        <div style={{ animation: 'fadeUp 1s ease both', animationDelay: '0.2s', marginBottom: '24px' }}>
+      <section style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '120px 32px 80px', textAlign: 'center', position: 'relative', zIndex: 2 }}>
+        <div style={{ animation: 'fadeUp 1s ease both', marginBottom: '24px' }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(233,69,96,0.08)', border: '1px solid rgba(233,69,96,0.2)', borderRadius: '999px', padding: '6px 20px', fontSize: '0.7rem', letterSpacing: '3px', color: '#e94560', textTransform: 'uppercase' }}>
             <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#e94560', animation: 'glowPulse 2s infinite' }} />{t.tagline}
           </div>
@@ -253,36 +515,27 @@ function TelaLanding({ onEntrar }) {
         <h1 style={{ fontSize: 'clamp(2.5rem, 6vw, 5rem)', fontWeight: '900', lineHeight: 1.05, margin: '0 0 32px', maxWidth: '800px', animation: 'fadeUp 1s ease both', animationDelay: '0.4s' }}>
           <GlitchText text={t.hero1} style={{ background: 'linear-gradient(135deg, #fff 0%, #c4b5fd 40%, #e94560 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }} />
           <br /><span style={{ color: 'rgba(255,255,255,0.9)' }}>{t.hero2}</span>
-          <br /><span style={{ background: 'linear-gradient(135deg, #7c3aed, #00fff7)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundSize: '200% auto', animation: 'shimmer 4s linear infinite' }}>{t.hero3}</span>
+          <br /><span style={{ background: 'linear-gradient(135deg, #7c3aed, #00fff7)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{t.hero3}</span>
         </h1>
         <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '1.1rem', maxWidth: '520px', margin: '0 auto 56px', lineHeight: 1.7, animation: 'fadeUp 1s ease both', animationDelay: '0.6s' }}>{t.heroDesc}</p>
-        <button onClick={onEntrar} style={{ padding: '18px 52px', borderRadius: '999px', border: 'none', background: 'linear-gradient(135deg, #7c3aed, #e94560)', color: '#fff', fontSize: '1rem', fontWeight: '700', letterSpacing: '2px', cursor: 'pointer', textTransform: 'uppercase', boxShadow: '0 0 60px rgba(124,58,237,0.4)', animation: 'fadeUp 1s ease both, pulse 3s infinite', animationDelay: '0.8s' }}>{t.startFree}</button>
+        <button onClick={onEntrar} style={{ padding: '18px 52px', borderRadius: '999px', border: 'none', background: 'linear-gradient(135deg, #7c3aed, #e94560)', color: '#fff', fontSize: '1rem', fontWeight: '700', letterSpacing: '2px', cursor: 'pointer', textTransform: 'uppercase', boxShadow: '0 0 60px rgba(124,58,237,0.4)', animation: 'pulse 3s infinite' }}
+          onMouseEnter={e => e.target.style.transform = 'scale(1.05)'}
+          onMouseLeave={e => e.target.style.transform = 'scale(1)'}
+        >{t.startFree}</button>
         <p style={{ color: 'rgba(255,255,255,0.15)', fontSize: '0.75rem', marginTop: '20px' }}>{t.noCard}</p>
       </section>
       <section style={{ padding: '80px 32px 120px', maxWidth: '1100px', margin: '0 auto', position: 'relative', zIndex: 2 }}>
         <div style={{ textAlign: 'center', marginBottom: '60px' }}>
-          <div style={{ fontSize: '0.65rem', letterSpacing: '4px', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', marginBottom: '16px' }}>{t.stylesLabel}</div>
-          <h2 style={{ fontSize: '2.5rem', fontWeight: '900', color: '#fff', margin: 0 }}>{t.stylesTitle}</h2>
+          <h2 style={{ fontSize: '2.5rem', fontWeight: '900', color: '#fff' }}>{t.stylesTitle}</h2>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
           {estilos.map((e, i) => (
-            <TiltCard key={e.nome} glowColor={e.cor} style={{ background: `linear-gradient(135deg, ${e.bg}, rgba(0,0,0,0.8))`, border: `1px solid ${e.cor}22`, borderRadius: '24px', padding: '28px', animation: 'fadeUp 0.6s ease both', animationDelay: `${i * 0.1}s` }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
-                <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: `${e.cor}22`, border: `1px solid ${e.cor}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', color: e.cor }}>{e.icon}</div>
-                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: e.cor, boxShadow: `0 0 12px ${e.cor}` }} />
-              </div>
-              <div style={{ width: '100%', height: '3px', background: `linear-gradient(90deg, ${e.cor}, transparent)`, borderRadius: '999px', marginBottom: '16px' }} />
+            <TiltCard key={e.nome} glowColor={e.cor} style={{ background: `linear-gradient(135deg, ${e.bg}, rgba(0,0,0,0.8))`, border: `1px solid ${e.cor}22`, borderRadius: '24px', padding: '28px', cursor: 'pointer' }}>
+              <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: `${e.cor}22`, border: `1px solid ${e.cor}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', color: e.cor, marginBottom: '16px' }}>{e.icon}</div>
               <p style={{ fontSize: '1rem', fontWeight: '700', color: '#fff', marginBottom: '8px' }}>{e.nome}</p>
               <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.35)' }}>{e.emocao}</p>
             </TiltCard>
           ))}
-        </div>
-      </section>
-      <section style={{ padding: '80px 32px 120px', textAlign: 'center', position: 'relative', zIndex: 2 }}>
-        <div style={{ maxWidth: '600px', margin: '0 auto', background: 'rgba(124,58,237,0.06)', border: '1px solid rgba(124,58,237,0.2)', borderRadius: '32px', padding: '60px 40px', backdropFilter: 'blur(20px)' }}>
-          <h2 style={{ fontSize: '2.2rem', fontWeight: '900', color: '#fff', marginBottom: '16px' }}>{t.ctaTitle}</h2>
-          <p style={{ color: 'rgba(255,255,255,0.4)', marginBottom: '36px' }}>{t.ctaDesc}</p>
-          <button onClick={onEntrar} style={{ padding: '18px 52px', borderRadius: '999px', border: 'none', background: 'linear-gradient(135deg, #7c3aed, #e94560)', color: '#fff', fontSize: '1rem', fontWeight: '700', cursor: 'pointer', textTransform: 'uppercase', boxShadow: '0 0 60px rgba(124,58,237,0.4)' }}>{t.startFree}</button>
         </div>
       </section>
       <footer style={{ textAlign: 'center', padding: '32px', borderTop: '1px solid rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.15)', fontSize: '0.75rem', position: 'relative', zIndex: 2 }}>{t.footer}</footer>
@@ -292,13 +545,13 @@ function TelaLanding({ onEntrar }) {
 
 function TelaAuth({ onLogin }) {
   const t = useT()
-  const isRTL = detectLang() === 'ar'
   const [modo, setModo] = useState('login')
   const [nome, setNome] = useState('')
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
   const [erro, setErro] = useState('')
   const [loading, setLoading] = useState(false)
+  const inp = { width: '100%', background: 'rgba(255,255,255,0.04)', color: '#fff', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px', padding: '15px 18px', fontSize: '0.95rem', marginBottom: '12px', boxSizing: 'border-box', outline: 'none' }
   async function submeter() {
     setLoading(true); setErro('')
     try {
@@ -311,13 +564,12 @@ function TelaAuth({ onLogin }) {
     } catch { setErro(t.connectionError) }
     setLoading(false)
   }
-  const inp = { width: '100%', background: 'rgba(255,255,255,0.04)', color: '#fff', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px', padding: '15px 18px', fontSize: '0.95rem', marginBottom: '12px', boxSizing: 'border-box', outline: 'none' }
   return (
-    <div dir={isRTL ? 'rtl' : 'ltr'} style={{ minHeight: '100vh', background: '#050508', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Segoe UI', sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: '#050508', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Segoe UI', sans-serif" }}>
       <OrbField /><ParticleField color="#7c3aed" count={30} />
       <div style={{ width: '100%', maxWidth: '420px', padding: '0 24px', position: 'relative', zIndex: 2, animation: 'tiltIn 0.8s ease both' }}>
         <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-          <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: 'linear-gradient(135deg, #7c3aed, #e94560)', margin: '0 auto 20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', boxShadow: '0 0 40px rgba(124,58,237,0.5)' }}>◈</div>
+          <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: 'linear-gradient(135deg, #7c3aed, #e94560)', margin: '0 auto 20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>◈</div>
           <h1 style={{ fontSize: '1.8rem', fontWeight: '800', background: 'linear-gradient(135deg, #fff, #a78bfa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginBottom: '8px' }}>Kit de Intenção Visual</h1>
           <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.9rem' }}>{modo === 'login' ? t.loginTitle : t.registerTitle}</p>
         </div>
@@ -326,7 +578,7 @@ function TelaAuth({ onLogin }) {
           <input value={email} onChange={e => setEmail(e.target.value)} placeholder={t.emailPlaceholder} type="email" style={inp} />
           <input value={senha} onChange={e => setSenha(e.target.value)} placeholder={t.passwordPlaceholder} type="password" style={{ ...inp, marginBottom: '20px' }} />
           {erro && <p style={{ color: '#e94560', fontSize: '0.8rem', marginBottom: '12px', textAlign: 'center' }}>{erro}</p>}
-          <button onClick={submeter} disabled={loading} style={{ width: '100%', padding: '16px', borderRadius: '999px', border: 'none', background: loading ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg, #7c3aed, #e94560)', color: loading ? 'rgba(255,255,255,0.3)' : '#fff', fontSize: '0.95rem', fontWeight: '700', letterSpacing: '2px', cursor: loading ? 'not-allowed' : 'pointer', textTransform: 'uppercase' }}>
+          <button onClick={submeter} disabled={loading} style={{ width: '100%', padding: '16px', borderRadius: '999px', border: 'none', background: loading ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg, #7c3aed, #e94560)', color: loading ? 'rgba(255,255,255,0.3)' : '#fff', fontSize: '0.95rem', fontWeight: '700', cursor: loading ? 'not-allowed' : 'pointer', textTransform: 'uppercase' }}>
             {loading ? t.loading : modo === 'login' ? t.loginBtn : t.registerBtn}
           </button>
           <p style={{ textAlign: 'center', marginTop: '20px', color: 'rgba(255,255,255,0.25)', fontSize: '0.85rem' }}>
@@ -349,6 +601,7 @@ const PRESETS = {
 }
 const FORMATOS = { youtube:{label:'YouTube',ratio:'16:9',icon:'▶',w:320,h:180}, instagram:{label:'Instagram',ratio:'1:1',icon:'◈',w:240,h:240}, filme:{label:'Filme',ratio:'2.39:1',icon:'◻',w:320,h:134}, clipe:{label:'Clipe',ratio:'9:16',icon:'◆',w:150,h:267} }
 const DEFAULT = PRESETS.poder
+
 function detectPreset(text) {
   const lower = text.toLowerCase()
   for (const [,p] of Object.entries(PRESETS)) { if (p.keywords.some(k => lower.includes(k))) return p }
@@ -420,72 +673,7 @@ class AudioEngine {
 }
 const audioEngine = new AudioEngine()
 
-function usePulse(bpm, active) {
-  const [pulse, setPulse] = useState(false)
-  useEffect(() => {
-    if (!active) return
-    const ms = Math.round(60000/bpm)
-    const t = setInterval(() => { setPulse(true); setTimeout(()=>setPulse(false),80) }, ms)
-    return () => clearInterval(t)
-  }, [bpm, active])
-  return pulse
-}
-
-function CameraView({ tipo, glow }) {
-  const configs = {
-    'Close extremo': <svg viewBox="0 0 200 120" style={{width:'100%',height:'100%'}}><rect x="60" y="20" width="80" height="80" rx="40" fill="none" stroke={glow} strokeWidth="1.5" opacity="0.4"/><rect x="75" y="35" width="50" height="50" rx="25" fill="none" stroke={glow} strokeWidth="1.5" opacity="0.7"/><circle cx="100" cy="60" r="14" fill={glow} opacity="0.15"/><circle cx="100" cy="60" r="6" fill={glow} opacity="0.6"/><text x="100" y="108" textAnchor="middle" fill={glow} fontSize="7" opacity="0.5">EXTREME CLOSE-UP</text></svg>,
-    'Ângulo baixo': <svg viewBox="0 0 200 120" style={{width:'100%',height:'100%'}}><polygon points="100,15 30,95 170,95" fill="none" stroke={glow} strokeWidth="1.5" opacity="0.5"/><circle cx="100" cy="15" r="5" fill={glow} opacity="0.8"/><text x="100" y="116" textAnchor="middle" fill={glow} fontSize="7" opacity="0.5">LOW ANGLE</text></svg>,
-    'Macro extremo': <svg viewBox="0 0 200 120" style={{width:'100%',height:'100%'}}><circle cx="100" cy="55" r="35" fill="none" stroke={glow} strokeWidth="1.5" opacity="0.3"/><circle cx="100" cy="55" r="20" fill="none" stroke={glow} strokeWidth="1.5" opacity="0.5"/><circle cx="100" cy="55" r="8" fill={glow} opacity="0.2"/><circle cx="100" cy="55" r="3" fill={glow} opacity="0.9"/><text x="100" y="108" textAnchor="middle" fill={glow} fontSize="7" opacity="0.5">MACRO LENS</text></svg>,
-    'Plano aberto': <svg viewBox="0 0 200 120" style={{width:'100%',height:'100%'}}><rect x="15" y="25" width="170" height="70" rx="4" fill="none" stroke={glow} strokeWidth="1.5" opacity="0.4"/><rect x="85" y="45" width="30" height="30" fill="none" stroke={glow} strokeWidth="1" opacity="0.6"/><text x="100" y="108" textAnchor="middle" fill={glow} fontSize="7" opacity="0.5">WIDE SHOT</text></svg>,
-    'Travelling lateral': <svg viewBox="0 0 200 120" style={{width:'100%',height:'100%'}}><rect x="70" y="45" width="60" height="30" rx="3" fill="none" stroke={glow} strokeWidth="1.5" opacity="0.5"/><polygon points="20,55 5,60 20,65" fill={glow} opacity="0.6"/><line x1="20" y1="60" x2="70" y2="60" stroke={glow} strokeWidth="1.5" opacity="0.4" strokeDasharray="5 3"/><text x="100" y="108" textAnchor="middle" fill={glow} fontSize="7" opacity="0.5">TRACKING SHOT</text></svg>,
-    'Plano médio': <svg viewBox="0 0 200 120" style={{width:'100%',height:'100%'}}><rect x="40" y="15" width="120" height="90" rx="4" fill="none" stroke={glow} strokeWidth="1.5" opacity="0.4"/><rect x="75" y="25" width="50" height="45" fill="none" stroke={glow} strokeWidth="1" opacity="0.6"/><text x="100" y="112" textAnchor="middle" fill={glow} fontSize="7" opacity="0.5">MEDIUM SHOT</text></svg>,
-    'Close olhos': <svg viewBox="0 0 200 120" style={{width:'100%',height:'100%'}}><path d="M30,60 Q100,20 170,60 Q100,100 30,60" fill="none" stroke={glow} strokeWidth="1.5" opacity="0.5"/><ellipse cx="100" cy="60" rx="22" ry="16" fill="none" stroke={glow} strokeWidth="1.5" opacity="0.7"/><circle cx="100" cy="60" r="4" fill={glow} opacity="0.7"/><text x="100" y="108" textAnchor="middle" fill={glow} fontSize="7" opacity="0.5">INSERT SHOT</text></svg>,
-  }
-  return <div style={{width:'100%',height:'100px'}}>{configs[tipo]||configs['Plano médio']}</div>
-}
-
-function PreviewFilme({ preset, formato, active }) {
-  const [cena, setCena] = useState(0)
-  const [fade, setFade] = useState(true)
-  const pulse = usePulse(preset.bpm, active)
-  const fmt = FORMATOS[formato]
-  useEffect(() => {
-    if (!active) return
-    const delay = Math.max(1800, Math.round(60000/parseInt(preset.ritmo)))
-    const t = setInterval(() => { setFade(false); setTimeout(()=>{ setCena(c=>(c+1)%preset.cenas.length); setFade(true) },300) }, delay)
-    return () => clearInterval(t)
-  }, [active, preset])
-  const ca = preset.cenas[cena]
-  return (
-    <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:'12px'}}>
-      <div style={{width:`${fmt.w}px`,height:`${fmt.h}px`,borderRadius:'14px',overflow:'hidden',position:'relative',background:`linear-gradient(135deg,${preset.bg[0]},${preset.bg[1]},${preset.bg[2]})`,boxShadow:pulse?`0 0 50px ${preset.glow}66`:`0 0 25px ${preset.glow}33`,border:`1px solid ${preset.glow}33`}}>
-        <div style={{position:'absolute',inset:0,backgroundImage:`linear-gradient(${preset.glow}06 1px,transparent 1px),linear-gradient(90deg,${preset.glow}06 1px,transparent 1px)`,backgroundSize:'30px 30px'}}/>
-        <div style={{position:'absolute',bottom:0,left:0,right:0,height:'45%',display:'flex',alignItems:'flex-end',gap:'3px',padding:'8px',opacity:fade?1:0,transition:'opacity 0.3s ease'}}>
-          {preset.paleta.map((cor,i)=><div key={i} style={{flex:1,borderRadius:'4px',background:cor,height:`${35+i*18}%`}}/>)}
-        </div>
-        <div style={{position:'absolute',inset:0,display:'flex',flexDirection:'column',justifyContent:'space-between',padding:'10px 12px',opacity:fade?1:0,transition:'opacity 0.3s ease'}}>
-          <div style={{display:'flex',justifyContent:'space-between'}}>
-            <div style={{background:'rgba(0,0,0,0.6)',backdropFilter:'blur(8px)',borderRadius:'999px',padding:'3px 10px',fontSize:'0.55rem',color:preset.glow,letterSpacing:'2px'}}>{fmt.ratio}</div>
-            <div style={{display:'flex',alignItems:'center',gap:'4px',background:'rgba(0,0,0,0.6)',backdropFilter:'blur(8px)',borderRadius:'999px',padding:'3px 10px',fontSize:'0.55rem',color:'#fff'}}>
-              <div style={{width:'5px',height:'5px',borderRadius:'50%',background:pulse?preset.glow:'rgba(255,255,255,0.3)'}}/>{preset.bpm} BPM
-            </div>
-          </div>
-          <div style={{background:'linear-gradient(transparent,rgba(0,0,0,0.88))',margin:'-10px -12px -10px',padding:'20px 12px 10px'}}>
-            <p style={{fontSize:'0.6rem',color:preset.glow,letterSpacing:'1px',marginBottom:'2px',textTransform:'uppercase'}}>{ca.cam}</p>
-            <p style={{fontSize:'0.68rem',color:'rgba(255,255,255,0.85)',fontWeight:'600'}}>{ca.desc}</p>
-            <p style={{fontSize:'0.58rem',color:'rgba(255,255,255,0.4)',marginTop:'2px'}}>💡 {ca.luz}</p>
-          </div>
-        </div>
-      </div>
-      <div style={{display:'flex',gap:'6px'}}>
-        {preset.cenas.map((_,i)=><div key={i} style={{width:i===cena?'18px':'5px',height:'5px',borderRadius:'999px',background:i===cena?preset.glow:'rgba(255,255,255,0.15)',transition:'all 0.3s ease'}}/>)}
-      </div>
-    </div>
-  )
-}
-
 function BPMVisual({ bpm, glow, active }) {
-  const pulse = usePulse(bpm, active)
   const [heights, setHeights] = useState([0.4,0.7,1,0.6,0.85,0.5,0.9,0.65])
   useEffect(() => {
     if (!active) return
@@ -496,7 +684,7 @@ function BPMVisual({ bpm, glow, active }) {
   return (
     <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
       <div style={{display:'flex',alignItems:'flex-end',gap:'3px',height:'32px'}}>
-        {heights.map((h,i)=><div key={i} style={{width:'4px',borderRadius:'2px',height:`${h*32}px`,background:glow,opacity:0.5+h*0.5,transition:`height ${Math.round(60000/bpm*0.8)}ms ease`,boxShadow:pulse?`0 0 6px ${glow}`:'none'}}/>)}
+        {heights.map((h,i)=><div key={i} style={{width:'4px',borderRadius:'2px',height:`${h*32}px`,background:glow,opacity:0.5+h*0.5,transition:`height ${Math.round(60000/bpm*0.8)}ms ease`}}/>)}
       </div>
       <span style={{fontSize:'1.6rem',fontWeight:'800',color:glow,letterSpacing:'-1px'}}>{bpm}</span>
       <span style={{fontSize:'0.7rem',color:'rgba(255,255,255,0.3)',letterSpacing:'2px'}}>BPM</span>
@@ -504,6 +692,21 @@ function BPMVisual({ bpm, glow, active }) {
   )
 }
 
+function CameraView({ tipo, glow }) {
+  const configs = {
+    'Close extremo': (<svg viewBox="0 0 200 120" style={{width:'100%',height:'100%'}}><rect x="60" y="20" width="80" height="80" rx="40" fill="none" stroke={glow} strokeWidth="1.5" opacity="0.4"/><rect x="75" y="35" width="50" height="50" rx="25" fill="none" stroke={glow} strokeWidth="1.5" opacity="0.7"/><circle cx="100" cy="60" r="14" fill={glow} opacity="0.15"/><circle cx="100" cy="60" r="6" fill={glow} opacity="0.6"/><text x="100" y="108" textAnchor="middle" fill={glow} fontSize="7" opacity="0.5" letterSpacing="2">EXTREME CLOSE-UP</text></svg>),
+    'Ângulo baixo': (<svg viewBox="0 0 200 120" style={{width:'100%',height:'100%'}}><polygon points="100,15 30,95 170,95" fill="none" stroke={glow} strokeWidth="1.5" opacity="0.5"/><circle cx="100" cy="15" r="5" fill={glow} opacity="0.8"/><text x="100" y="116" textAnchor="middle" fill={glow} fontSize="7" opacity="0.5" letterSpacing="2">LOW ANGLE</text></svg>),
+    'Macro extremo': (<svg viewBox="0 0 200 120" style={{width:'100%',height:'100%'}}><circle cx="100" cy="55" r="35" fill="none" stroke={glow} strokeWidth="1.5" opacity="0.3"/><circle cx="100" cy="55" r="20" fill="none" stroke={glow} strokeWidth="1.5" opacity="0.5"/><circle cx="100" cy="55" r="8" fill={glow} opacity="0.2"/><circle cx="100" cy="55" r="3" fill={glow} opacity="0.9"/><text x="100" y="108" textAnchor="middle" fill={glow} fontSize="7" opacity="0.5" letterSpacing="2">MACRO LENS</text></svg>),
+    'Plano aberto': (<svg viewBox="0 0 200 120" style={{width:'100%',height:'100%'}}><rect x="15" y="25" width="170" height="70" rx="4" fill="none" stroke={glow} strokeWidth="1.5" opacity="0.4"/><rect x="85" y="45" width="30" height="30" fill="none" stroke={glow} strokeWidth="1" opacity="0.6"/><text x="100" y="108" textAnchor="middle" fill={glow} fontSize="7" opacity="0.5" letterSpacing="2">WIDE SHOT</text></svg>),
+    'Travelling lateral': (<svg viewBox="0 0 200 120" style={{width:'100%',height:'100%'}}><rect x="70" y="45" width="60" height="30" rx="3" fill="none" stroke={glow} strokeWidth="1.5" opacity="0.5"/><polygon points="20,55 5,60 20,65" fill={glow} opacity="0.6"/><line x1="20" y1="60" x2="70" y2="60" stroke={glow} strokeWidth="1.5" opacity="0.4" strokeDasharray="5 3"/><text x="100" y="108" textAnchor="middle" fill={glow} fontSize="7" opacity="0.5" letterSpacing="2">TRACKING SHOT</text></svg>),
+    'Plano médio': (<svg viewBox="0 0 200 120" style={{width:'100%',height:'100%'}}><rect x="40" y="15" width="120" height="90" rx="4" fill="none" stroke={glow} strokeWidth="1.5" opacity="0.4"/><rect x="75" y="25" width="50" height="45" fill="none" stroke={glow} strokeWidth="1" opacity="0.6"/><text x="100" y="112" textAnchor="middle" fill={glow} fontSize="7" opacity="0.5" letterSpacing="2">MEDIUM SHOT</text></svg>),
+    'Close olhos': (<svg viewBox="0 0 200 120" style={{width:'100%',height:'100%'}}><path d="M30,60 Q100,20 170,60 Q100,100 30,60" fill="none" stroke={glow} strokeWidth="1.5" opacity="0.5"/><ellipse cx="100" cy="60" rx="22" ry="16" fill="none" stroke={glow} strokeWidth="1.5" opacity="0.7"/><circle cx="100" cy="60" r="4" fill={glow} opacity="0.7"/><text x="100" y="108" textAnchor="middle" fill={glow} fontSize="7" opacity="0.5" letterSpacing="2">INSERT SHOT</text></svg>),
+    'Grande angular': (<svg viewBox="0 0 200 120" style={{width:'100%',height:'100%'}}><path d="M5,60 Q100,10 195,60 Q100,110 5,60" fill="none" stroke={glow} strokeWidth="1.5" opacity="0.4"/><rect x="20" y="30" width="160" height="60" rx="4" fill="none" stroke={glow} strokeWidth="1" opacity="0.3"/><text x="100" y="112" textAnchor="middle" fill={glow} fontSize="7" opacity="0.5" letterSpacing="2">WIDE ANGLE</text></svg>),
+  }
+  return <div style={{width:'100%',height:'100px'}}>{configs[tipo]||configs['Plano médio']}</div>
+}
+
+// ── Main App ──────────────────────────────────────────────────────────────────
 export default function App() {
   const t = useT()
   const isRTL = detectLang() === 'ar'
@@ -520,12 +723,21 @@ export default function App() {
   const [meusKits, setMeusKits] = useState([])
   const [shareUrl, setShareUrl] = useState(null)
   const [sharingId, setSharingId] = useState(null)
+  const debounceRef = useRef(null)
 
   const path = window.location.pathname
   const shareMatch = path.match(/^\/kit\/([a-zA-Z0-9]+)$/)
   if (shareMatch) return <PaginaKitPublico shareId={shareMatch[1]} />
 
-  useEffect(() => { setPreview(emocao.length > 3 ? detectPreset(emocao) : null) }, [emocao])
+  // Preview reativo com debounce ao digitar
+  useEffect(() => {
+    clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      setPreview(emocao.length > 3 ? detectPreset(emocao) : null)
+    }, 300)
+    return () => clearTimeout(debounceRef.current)
+  }, [emocao])
+
   useEffect(() => () => audioEngine.stop(), [])
 
   if (!user && mostrarAuth) return <TelaAuth onLogin={login} />
@@ -534,7 +746,11 @@ export default function App() {
   async function gerarKit() {
     setLoading(true); setResultado(null); setKitId(null); setShareUrl(null)
     try {
-      const res = await fetch(`${API}/gerar-kit`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user.token}` }, body: JSON.stringify({ emocao, formato }) })
+      const res = await fetch(`${API}/gerar-kit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user.token}` },
+        body: JSON.stringify({ emocao, formato })
+      })
       const data = await res.json()
       const local = detectPreset(emocao) || DEFAULT
       setResultado({ ...local, ...data, bg: local.bg, glow: local.glow, cenas: local.cenas })
@@ -558,7 +774,8 @@ export default function App() {
   async function carregarKits() {
     try {
       const res = await fetch(`${API}/meus-kits`, { headers: { 'Authorization': `Bearer ${user.token}` } })
-      setMeusKits(await res.json())
+      const data = await res.json()
+      setMeusKits(data)
     } catch {}
   }
 
@@ -585,102 +802,157 @@ export default function App() {
       {shareUrl && <ShareToast url={shareUrl} onClose={() => setShareUrl(null)} />}
 
       <div style={{ maxWidth: '760px', margin: '0 auto', padding: '80px 28px 60px', position: 'relative', zIndex: 2 }}>
+        {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '40px' }}>
           <div style={{ animation: 'slideIn 0.6s ease both' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-              <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: 'linear-gradient(135deg, #7c3aed, #e94560)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', boxShadow: `0 0 20px ${active ? active.glow+'66' : 'rgba(124,58,237,0.5)'}` }}>◈</div>
+              <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: 'linear-gradient(135deg, #7c3aed, #e94560)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px' }}>◈</div>
               <div style={{ fontSize: '0.6rem', letterSpacing: '3px', color: '#e94560', textTransform: 'uppercase' }}>{t.badge}</div>
             </div>
             <h1 style={{ fontSize: '2rem', fontWeight: '900', lineHeight: 1.1, background: `linear-gradient(135deg, #fff 0%, ${active ? active.glow : '#a78bfa'} 60%, #e94560 100%)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', margin: 0 }}>Kit de Intenção<br />Visual</h1>
           </div>
           <div style={{ textAlign: 'right' }}>
             <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', marginBottom: '8px' }}>{t.hello}, {user.nome}</p>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <button onClick={assinarPro} style={{ background: 'linear-gradient(135deg, #7c3aed, #e94560)', border: 'none', borderRadius: '999px', padding: '7px 18px', color: '#fff', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer', boxShadow: '0 0 20px rgba(124,58,237,0.4)' }}>{t.pro}</button>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button onClick={assinarPro} style={{ background: 'linear-gradient(135deg, #7c3aed, #e94560)', border: 'none', borderRadius: '999px', padding: '7px 18px', color: '#fff', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer' }}>{t.pro}</button>
               <button onClick={logout} style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '999px', padding: '7px 16px', color: 'rgba(255,255,255,0.35)', fontSize: '0.75rem', cursor: 'pointer' }}>{t.logout}</button>
             </div>
           </div>
         </div>
 
+        {/* Abas */}
         <div style={{ display: 'flex', gap: '8px', marginBottom: '36px', background: 'rgba(255,255,255,0.02)', borderRadius: '999px', padding: '4px', width: 'fit-content', border: '1px solid rgba(255,255,255,0.05)' }}>
           {[['gerar', t.generateKit], ['historico', t.dnaVisual]].map(([key, label]) => (
-            <button key={key} onClick={() => { setAba(key); if (key==='historico') carregarKits() }} style={{ padding: '8px 22px', borderRadius: '999px', border: 'none', background: aba===key ? 'linear-gradient(135deg, rgba(124,58,237,0.4), rgba(233,69,96,0.3))' : 'transparent', color: aba===key ? '#fff' : 'rgba(255,255,255,0.35)', fontSize: '0.8rem', cursor: 'pointer', fontWeight: aba===key ? '700' : '400' }}>{label}</button>
+            <button key={key} onClick={() => { setAba(key); if (key==='historico') carregarKits() }}
+              style={{ padding: '8px 22px', borderRadius: '999px', border: 'none', background: aba===key ? 'linear-gradient(135deg, rgba(124,58,237,0.4), rgba(233,69,96,0.3))' : 'transparent', color: aba===key ? '#fff' : 'rgba(255,255,255,0.35)', fontSize: '0.8rem', cursor: 'pointer', fontWeight: aba===key ? '700' : '400' }}>{label}</button>
           ))}
         </div>
 
+        {/* Histórico */}
         {aba === 'historico' && (
           <div style={{ animation: 'fadeUp 0.5s ease both' }}>
             <h2 style={{ fontSize: '1.4rem', fontWeight: '800', color: '#fff', marginBottom: '24px' }}>{t.dnaVisual}</h2>
-            {meusKits.length === 0
-              ? <div style={{ textAlign: 'center', padding: '80px 40px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '24px' }}><p style={{ fontSize: '2.5rem' }}>🎬</p><p style={{ color: 'rgba(255,255,255,0.25)' }}>{t.emptyKits}</p></div>
-              : <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  {meusKits.map((kit, i) => (
-                    <TiltCard key={kit.id} glowColor="#7c3aed" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '18px', padding: '20px 24px', animation: 'fadeUp 0.4s ease both', animationDelay: `${i*0.08}s` }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <div>
-                          <p style={{ fontSize: '0.55rem', letterSpacing: '2px', color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', marginBottom: '6px' }}>{kit.formato}</p>
-                          <p style={{ fontSize: '1rem', fontWeight: '700', color: '#fff', marginBottom: '4px' }}>{kit.estilo}</p>
-                          <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', fontStyle: 'italic' }}>"{kit.emocao}"</p>
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
-                          <p style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.2)' }}>{new Date(kit.criado_em).toLocaleDateString()}</p>
-                          <button onClick={() => compartilharKit(kit.id)} disabled={sharingId===kit.id} style={{ padding: '6px 14px', borderRadius: '999px', border: '1px solid rgba(124,58,237,0.4)', background: kit.share_id ? 'rgba(124,58,237,0.2)' : 'transparent', color: kit.share_id ? '#a78bfa' : 'rgba(255,255,255,0.4)', fontSize: '0.7rem', cursor: 'pointer', fontWeight: '600' }}>
-                            {sharingId===kit.id ? '...' : kit.share_id ? 'Compartilhado' : 'Compartilhar'}
-                          </button>
-                        </div>
+            {meusKits.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '80px 40px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '24px' }}>
+                <p style={{ fontSize: '2.5rem', marginBottom: '12px' }}>🎬</p>
+                <p style={{ color: 'rgba(255,255,255,0.25)' }}>{t.emptyKits}</p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {meusKits.map((kit, i) => (
+                  <TiltCard key={kit.id} glowColor="#7c3aed" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '18px', padding: '20px 24px', animation: 'fadeUp 0.4s ease both', animationDelay: `${i*0.08}s` }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div>
+                        <p style={{ fontSize: '0.55rem', letterSpacing: '2px', color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', marginBottom: '6px' }}>{kit.formato}</p>
+                        <p style={{ fontSize: '1rem', fontWeight: '700', color: '#fff', marginBottom: '4px' }}>{kit.estilo}</p>
+                        <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', fontStyle: 'italic' }}>"{kit.emocao}"</p>
                       </div>
-                    </TiltCard>
-                  ))}
-                </div>
-            }
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
+                        <p style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.2)' }}>{new Date(kit.criado_em).toLocaleDateString()}</p>
+                        <button onClick={() => compartilharKit(kit.id)} disabled={sharingId === kit.id}
+                          style={{ padding: '6px 14px', borderRadius: '999px', border: '1px solid rgba(124,58,237,0.4)', background: kit.share_id ? 'rgba(124,58,237,0.2)' : 'transparent', color: kit.share_id ? '#a78bfa' : 'rgba(255,255,255,0.4)', fontSize: '0.7rem', cursor: 'pointer', fontWeight: '600' }}>
+                          {sharingId === kit.id ? '...' : kit.share_id ? '🔗 Compartilhado' : '↗ Compartilhar'}
+                        </button>
+                      </div>
+                    </div>
+                  </TiltCard>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
+        {/* Gerar Kit */}
         {aba === 'gerar' && (
           <div style={{ animation: 'fadeUp 0.5s ease both' }}>
+
+            {/* Templates sugeridos */}
+            <div style={{ marginBottom: '24px' }}>
+              <p style={{ fontSize: '0.6rem', letterSpacing: '3px', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', marginBottom: '12px' }}>⚡ Começar com um estilo</p>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {TEMPLATES.map((tpl, i) => (
+                  <button key={i} onClick={() => setEmocao(tpl.prompt)}
+                    style={{ padding: '7px 14px', borderRadius: '999px', border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)', color: 'rgba(255,255,255,0.5)', fontSize: '0.75rem', cursor: 'pointer', transition: 'all 0.2s' }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = active ? active.glow+'66' : 'rgba(124,58,237,0.5)'; e.currentTarget.style.color = '#fff' }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'rgba(255,255,255,0.5)' }}
+                  >{tpl.label}</button>
+                ))}
+              </div>
+            </div>
+
+            {/* Formato */}
             <div style={{ marginBottom: '24px' }}>
               <p style={{ fontSize: '0.6rem', letterSpacing: '3px', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', marginBottom: '12px' }}>{t.format}</p>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 {Object.entries(FORMATOS).map(([key, fmt]) => (
-                  <button key={key} onClick={() => setFormato(key)} style={{ padding: '8px 18px', borderRadius: '999px', border: `1px solid ${formato===key ? (active?active.glow:'#7c3aed') : 'rgba(255,255,255,0.08)'}`, background: formato===key ? `${active?active.glow:'#7c3aed'}18` : 'rgba(255,255,255,0.02)', color: formato===key ? (active?active.glow:'#a78bfa') : 'rgba(255,255,255,0.3)', fontSize: '0.8rem', cursor: 'pointer', fontWeight: formato===key ? '700' : '400' }}>
+                  <button key={key} onClick={() => setFormato(key)}
+                    style={{ padding: '8px 18px', borderRadius: '999px', border: `1px solid ${formato===key ? (active?active.glow:'#7c3aed') : 'rgba(255,255,255,0.08)'}`, background: formato===key ? `${active?active.glow:'#7c3aed'}18` : 'rgba(255,255,255,0.02)', color: formato===key ? (active?active.glow:'#a78bfa') : 'rgba(255,255,255,0.3)', fontSize: '0.8rem', cursor: 'pointer', fontWeight: formato===key ? '700' : '400' }}>
                     {fmt.icon} {fmt.label}
                   </button>
                 ))}
               </div>
             </div>
 
+            {/* Pré-visualização em tempo real */}
             {active && (
-              <TiltCard glowColor={active.glow} style={{ marginBottom: '24px', display: 'flex', justifyContent: 'center', padding: '32px', background: 'rgba(0,0,0,0.4)', borderRadius: '28px', border: `1px solid ${active.glow}18`, backdropFilter: 'blur(20px)' }}>
-                <PreviewFilme preset={active} formato={formato} active={true} />
+              <TiltCard glowColor={active.glow} style={{ marginBottom: '24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', padding: '32px', background: 'rgba(0,0,0,0.5)', borderRadius: '28px', border: `1px solid ${active.glow}22`, backdropFilter: 'blur(20px)', animation: 'tiltIn 0.5s ease both' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                  <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#e94560', animation: 'glowPulse 1s infinite' }} />
+                  <p style={{ fontSize: '0.55rem', letterSpacing: '3px', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase' }}>Pré-visualização ao vivo · {active.nome}</p>
+                </div>
+                <CinematicPreview preset={active} formato={formato} />
+                <p style={{ fontSize: '0.65rem', color: active.glow, fontWeight: '700', letterSpacing: '1px' }}>{active.emocao}</p>
               </TiltCard>
             )}
 
-            <textarea value={emocao} onChange={e => setEmocao(e.target.value)} placeholder={t.placeholder}
-              style={{ width: '100%', height: '110px', background: 'rgba(255,255,255,0.02)', color: '#fff', border: `1px solid ${active ? active.glow+'44' : 'rgba(124,58,237,0.2)'}`, borderRadius: '20px', padding: '20px 24px', fontSize: '0.95rem', resize: 'none', boxSizing: 'border-box', outline: 'none', lineHeight: 1.6, backdropFilter: 'blur(10px)' }}
+            {/* Variações detectadas */}
+            {emocao.length > 3 && (
+              <VariacoesKit emocao={emocao} formato={formato} glow={active?.glow || '#7c3aed'}
+                onSelecionar={(p) => {
+                  setPreview(p)
+                  setEmocao(p.keywords[0])
+                }}
+              />
+            )}
+
+            {/* Textarea */}
+            <textarea value={emocao} onChange={e => setEmocao(e.target.value)}
+              placeholder={t.placeholder}
+              style={{ width: '100%', height: '110px', background: 'rgba(255,255,255,0.02)', color: '#fff', border: `1px solid ${active ? active.glow+'44' : 'rgba(124,58,237,0.2)'}`, borderRadius: '20px', padding: '20px 24px', fontSize: '0.95rem', resize: 'none', boxSizing: 'border-box', outline: 'none', lineHeight: 1.6, backdropFilter: 'blur(10px)', transition: 'border 0.5s ease', boxShadow: active ? `0 0 30px ${active.glow}11` : 'none' }}
             />
 
+            {/* Botões */}
             <div style={{ display: 'flex', gap: '12px', marginTop: '14px' }}>
-              <button onClick={gerarKit} disabled={loading} style={{ flex: 1, padding: '17px', borderRadius: '999px', border: 'none', background: loading ? 'rgba(255,255,255,0.04)' : `linear-gradient(135deg, ${active?active.glow:'#7c3aed'}, #e94560)`, color: loading ? 'rgba(255,255,255,0.25)' : '#fff', fontSize: '0.9rem', fontWeight: '700', letterSpacing: '2px', cursor: loading ? 'not-allowed' : 'pointer', textTransform: 'uppercase', boxShadow: loading ? 'none' : `0 0 40px ${active?active.glow+'44':'rgba(124,58,237,0.3)'}` }}>
+              <button onClick={gerarKit} disabled={loading}
+                style={{ flex: 1, padding: '17px', borderRadius: '999px', border: 'none', background: loading ? 'rgba(255,255,255,0.04)' : `linear-gradient(135deg, ${active?active.glow:'#7c3aed'}, #e94560)`, color: loading ? 'rgba(255,255,255,0.25)' : '#fff', fontSize: '0.9rem', fontWeight: '700', letterSpacing: '2px', cursor: loading ? 'not-allowed' : 'pointer', textTransform: 'uppercase', boxShadow: loading ? 'none' : `0 0 40px ${active?active.glow+'44':'rgba(124,58,237,0.3)'}` }}>
                 {loading ? t.generating : t.generateBtn}
               </button>
               {active && (
-                <button onClick={toggleAudio} style={{ padding: '17px 24px', borderRadius: '999px', border: `1px solid ${active.glow}44`, background: audioOn ? `${active.glow}22` : 'rgba(255,255,255,0.02)', color: audioOn ? active.glow : 'rgba(255,255,255,0.4)', fontSize: '0.85rem', cursor: 'pointer', fontWeight: '600' }}>
+                <button onClick={toggleAudio}
+                  style={{ padding: '17px 24px', borderRadius: '999px', border: `1px solid ${active.glow}44`, background: audioOn ? `${active.glow}22` : 'rgba(255,255,255,0.02)', color: audioOn ? active.glow : 'rgba(255,255,255,0.4)', fontSize: '0.85rem', cursor: 'pointer', fontWeight: '600' }}>
                   {audioOn ? t.stopBtn : t.listenBtn}
                 </button>
               )}
             </div>
 
+            {/* Resultado */}
             {resultado && (
               <div style={{ marginTop: '48px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <TiltCard glowColor={resultado.glow} style={{ textAlign: 'center', padding: '28px', background: `${resultado.glow}0e`, border: `1px solid ${resultado.glow}33`, borderRadius: '24px' }}>
+                <TiltCard glowColor={resultado.glow} style={{ textAlign: 'center', padding: '28px', background: `${resultado.glow}0e`, border: `1px solid ${resultado.glow}33`, borderRadius: '24px', animation: 'tiltIn 0.6s ease both' }}>
                   <p style={{ fontSize: '0.55rem', letterSpacing: '3px', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', marginBottom: '8px' }}>{t.detectedStyle}</p>
                   <p style={{ fontSize: '1.4rem', fontWeight: '900', color: resultado.glow, marginBottom: '6px', textShadow: `0 0 30px ${resultado.glow}` }}>{resultado.nome}</p>
                   <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.35)', marginBottom: '16px' }}>{resultado.emocao}</p>
                   {kitId && (
-                    <button onClick={() => compartilharKit(kitId)} disabled={sharingId===kitId} style={{ padding: '10px 24px', borderRadius: '999px', border: `1px solid ${resultado.glow}66`, background: shareUrl ? `${resultado.glow}22` : 'transparent', color: resultado.glow, fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer', letterSpacing: '1px' }}>
-                      {sharingId===kitId ? '...' : shareUrl ? 'Link copiado!' : 'Compartilhar este kit'}
+                    <button onClick={() => compartilharKit(kitId)} disabled={sharingId===kitId}
+                      style={{ padding: '10px 24px', borderRadius: '999px', border: `1px solid ${resultado.glow}66`, background: shareUrl ? `${resultado.glow}22` : 'transparent', color: resultado.glow, fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer', letterSpacing: '1px' }}>
+                      {sharingId===kitId ? '...' : shareUrl ? '✓ Link gerado!' : '↗ Compartilhar este kit'}
                     </button>
                   )}
+                </TiltCard>
+
+                {/* Feedback emocional */}
+                <TiltCard glowColor={resultado.glow} style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${resultado.glow}18`, borderRadius: '24px' }}>
+                  <FeedbackEmocional glow={resultado.glow} kitId={kitId} token={user.token} />
                 </TiltCard>
 
                 <TiltCard glowColor={resultado.glow} style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${resultado.glow}18`, borderRadius: '24px', padding: '24px' }}>
@@ -693,7 +965,10 @@ export default function App() {
                   <div style={{ display: 'flex', gap: '10px' }}>
                     {resultado.paleta.map(cor => (
                       <div key={cor} style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'center' }}>
-                        <div style={{ width: '100%', height: '54px', borderRadius: '14px', background: cor, boxShadow: `0 8px 24px ${cor}55` }} />
+                        <div style={{ width: '100%', height: '54px', borderRadius: '14px', background: cor, boxShadow: `0 8px 24px ${cor}55`, cursor: 'pointer' }}
+                          onMouseEnter={e=>e.currentTarget.style.transform='scale(1.05) translateY(-2px)'}
+                          onMouseLeave={e=>e.currentTarget.style.transform='scale(1) translateY(0)'}
+                        />
                         <span style={{ fontSize: '0.5rem', color: 'rgba(255,255,255,0.2)' }}>{cor}</span>
                       </div>
                     ))}
