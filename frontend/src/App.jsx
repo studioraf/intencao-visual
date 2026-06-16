@@ -1,5 +1,7 @@
+cat > /mnt/user-data/outputs/App.jsx << 'ENDOFFILE'
 import { useState, useEffect, useRef } from 'react'
 import * as Tone from 'tone'
+import { useT, detectLang } from './i18n'
 
 function useAuth() {
   const [user, setUser] = useState(() => {
@@ -128,6 +130,8 @@ function GlitchText({ text, style }) {
 }
 
 function TelaLanding({ onEntrar }) {
+  const t = useT()
+  const isRTL = detectLang() === 'ar'
   const [scrollY, setScrollY] = useState(0)
   useEffect(() => {
     const onScroll = () => setScrollY(window.scrollY)
@@ -145,7 +149,7 @@ function TelaLanding({ onEntrar }) {
   ]
 
   return (
-    <div style={{ minHeight: '100vh', background: '#050508', color: '#fff', fontFamily: "'Segoe UI', sans-serif", overflowX: 'hidden' }}>
+    <div dir={isRTL ? 'rtl' : 'ltr'} style={{ minHeight: '100vh', background: '#050508', color: '#fff', fontFamily: "'Segoe UI', sans-serif", overflowX: 'hidden' }}>
       <OrbField />
       <ParticleField color="#7c3aed" count={50} />
       <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 1, background: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px)' }} />
@@ -154,43 +158,41 @@ function TelaLanding({ onEntrar }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'linear-gradient(135deg, #7c3aed, #e94560)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', boxShadow: '0 0 20px rgba(124,58,237,0.5)' }}>◈</div>
           <div>
-            <div style={{ fontSize: '0.6rem', letterSpacing: '3px', color: '#e94560', textTransform: 'uppercase' }}>Neurocinematografia</div>
+            <div style={{ fontSize: '0.6rem', letterSpacing: '3px', color: '#e94560', textTransform: 'uppercase' }}>{t.badge}</div>
             <div style={{ fontSize: '0.9rem', fontWeight: '800', color: '#fff', lineHeight: 1 }}>Kit de Intenção Visual</div>
           </div>
         </div>
         <button onClick={onEntrar}
           onMouseEnter={e => { e.target.style.background = 'rgba(124,58,237,0.3)'; e.target.style.borderColor = '#7c3aed' }}
           onMouseLeave={e => { e.target.style.background = 'rgba(124,58,237,0.1)'; e.target.style.borderColor = 'rgba(124,58,237,0.5)' }}
-          style={{ padding: '10px 28px', borderRadius: '999px', border: '1px solid rgba(124,58,237,0.5)', background: 'rgba(124,58,237,0.1)', color: '#a78bfa', fontSize: '0.85rem', cursor: 'pointer', backdropFilter: 'blur(10px)', transition: 'all 0.3s ease' }}>Entrar →</button>
+          style={{ padding: '10px 28px', borderRadius: '999px', border: '1px solid rgba(124,58,237,0.5)', background: 'rgba(124,58,237,0.1)', color: '#a78bfa', fontSize: '0.85rem', cursor: 'pointer', backdropFilter: 'blur(10px)', transition: 'all 0.3s ease' }}>{t.enter}</button>
       </nav>
 
       <section style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '120px 32px 80px', textAlign: 'center', position: 'relative', zIndex: 2, transform: `translateY(${scrollY * 0.3}px)` }}>
         <div style={{ animation: 'fadeUp 1s ease both', animationDelay: '0.2s', marginBottom: '24px' }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(233,69,96,0.08)', border: '1px solid rgba(233,69,96,0.2)', borderRadius: '999px', padding: '6px 20px', fontSize: '0.7rem', letterSpacing: '3px', color: '#e94560', textTransform: 'uppercase' }}>
             <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#e94560', animation: 'glowPulse 2s infinite' }} />
-            Para criadores de vídeo
+            {t.tagline}
           </div>
         </div>
 
         <h1 style={{ fontSize: 'clamp(2.5rem, 6vw, 5rem)', fontWeight: '900', lineHeight: 1.05, margin: '0 0 32px', maxWidth: '800px', animation: 'fadeUp 1s ease both', animationDelay: '0.4s' }}>
-          <GlitchText text="Cada emoção" style={{ background: 'linear-gradient(135deg, #fff 0%, #c4b5fd 40%, #e94560 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }} />
+          <GlitchText text={t.hero1} style={{ background: 'linear-gradient(135deg, #fff 0%, #c4b5fd 40%, #e94560 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }} />
           <br />
-          <span style={{ color: 'rgba(255,255,255,0.9)' }}>tem uma estética.</span>
+          <span style={{ color: 'rgba(255,255,255,0.9)' }}>{t.hero2}</span>
           <br />
-          <span style={{ background: 'linear-gradient(135deg, #7c3aed, #00fff7)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundSize: '200% auto', animation: 'shimmer 4s linear infinite' }}>Descubra a sua.</span>
+          <span style={{ background: 'linear-gradient(135deg, #7c3aed, #00fff7)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundSize: '200% auto', animation: 'shimmer 4s linear infinite' }}>{t.hero3}</span>
         </h1>
 
-        <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '1.1rem', maxWidth: '520px', margin: '0 auto 56px', lineHeight: 1.7, animation: 'fadeUp 1s ease both', animationDelay: '0.6s' }}>
-          Descreva o que quer transmitir. Receba paleta, tipografia, ritmo de corte, BPM, iluminação e enquadramento — em segundos.
-        </p>
+        <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '1.1rem', maxWidth: '520px', margin: '0 auto 56px', lineHeight: 1.7, animation: 'fadeUp 1s ease both', animationDelay: '0.6s' }}>{t.heroDesc}</p>
 
         <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', justifyContent: 'center', animation: 'fadeUp 1s ease both', animationDelay: '0.8s' }}>
           <button onClick={onEntrar}
             onMouseEnter={e => e.target.style.transform = 'scale(1.05)'}
             onMouseLeave={e => e.target.style.transform = 'scale(1)'}
-            style={{ padding: '18px 52px', borderRadius: '999px', border: 'none', background: 'linear-gradient(135deg, #7c3aed, #e94560)', color: '#fff', fontSize: '1rem', fontWeight: '700', letterSpacing: '2px', cursor: 'pointer', textTransform: 'uppercase', boxShadow: '0 0 60px rgba(124,58,237,0.4), 0 0 120px rgba(233,69,96,0.2)', animation: 'pulse 3s infinite', transition: 'transform 0.2s ease' }}>Começar Grátis →</button>
+            style={{ padding: '18px 52px', borderRadius: '999px', border: 'none', background: 'linear-gradient(135deg, #7c3aed, #e94560)', color: '#fff', fontSize: '1rem', fontWeight: '700', letterSpacing: '2px', cursor: 'pointer', textTransform: 'uppercase', boxShadow: '0 0 60px rgba(124,58,237,0.4)', animation: 'pulse 3s infinite', transition: 'transform 0.2s ease' }}>{t.startFree}</button>
         </div>
-        <p style={{ color: 'rgba(255,255,255,0.15)', fontSize: '0.75rem', marginTop: '20px', animation: 'fadeUp 1s ease both', animationDelay: '1s' }}>Sem cartão de crédito · Grátis para sempre</p>
+        <p style={{ color: 'rgba(255,255,255,0.15)', fontSize: '0.75rem', marginTop: '20px' }}>{t.noCard}</p>
 
         <div style={{ marginTop: '80px', position: 'relative', animation: 'tiltIn 1.2s ease both', animationDelay: '1s' }}>
           <div style={{ position: 'absolute', inset: '-40px', background: 'radial-gradient(ellipse, rgba(124,58,237,0.2) 0%, transparent 70%)', borderRadius: '50%', filter: 'blur(40px)' }} />
@@ -202,7 +204,7 @@ function TelaLanding({ onEntrar }) {
               {['#0d0500','#8B3A00','#C8860A','#F5D78E'].map(cor => <div key={cor} style={{ flex: 1, height: '40px', borderRadius: '10px', background: cor, boxShadow: `0 4px 16px ${cor}66` }} />)}
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-              {[{ label: 'Estilo', val: 'Luxo Cinematográfico', col: '#C8860A' },{ label: 'BPM', val: '95', col: '#C8860A' },{ label: 'Ritmo', val: '22 cortes/min', col: '#C8860A' },{ label: 'Tipografia', val: 'Montserrat Black', col: '#C8860A' }].map(item => (
+              {[{ label: t.detectedStyle, val: 'Luxo Cinematográfico', col: '#C8860A' },{ label: 'BPM', val: '95', col: '#C8860A' },{ label: t.rhythmLabel.replace('✂️ ',''), val: '22 cuts/min', col: '#C8860A' },{ label: t.typographyLabel.replace('✍️ ',''), val: 'Montserrat Black', col: '#C8860A' }].map(item => (
                 <div key={item.label} style={{ background: 'rgba(0,0,0,0.3)', borderRadius: '12px', padding: '12px' }}>
                   <div style={{ fontSize: '0.55rem', color: 'rgba(255,255,255,0.3)', letterSpacing: '2px', marginBottom: '4px', textTransform: 'uppercase' }}>{item.label}</div>
                   <div style={{ fontSize: '0.8rem', color: item.col, fontWeight: '700' }}>{item.val}</div>
@@ -215,9 +217,9 @@ function TelaLanding({ onEntrar }) {
 
       <section style={{ padding: '80px 32px 120px', maxWidth: '1100px', margin: '0 auto', position: 'relative', zIndex: 2 }}>
         <div style={{ textAlign: 'center', marginBottom: '60px' }}>
-          <div style={{ fontSize: '0.65rem', letterSpacing: '4px', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', marginBottom: '16px' }}>6 linguagens visuais</div>
-          <h2 style={{ fontSize: '2.5rem', fontWeight: '900', color: '#fff', margin: 0 }}>Cada vídeo tem uma alma.</h2>
-          <p style={{ color: 'rgba(255,255,255,0.3)', marginTop: '12px', fontSize: '1rem' }}>Encontre a sua em segundos.</p>
+          <div style={{ fontSize: '0.65rem', letterSpacing: '4px', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', marginBottom: '16px' }}>{t.stylesLabel}</div>
+          <h2 style={{ fontSize: '2.5rem', fontWeight: '900', color: '#fff', margin: 0 }}>{t.stylesTitle}</h2>
+          <p style={{ color: 'rgba(255,255,255,0.3)', marginTop: '12px', fontSize: '1rem' }}>{t.stylesDesc}</p>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
           {estilos.map((e, i) => (
@@ -236,23 +238,23 @@ function TelaLanding({ onEntrar }) {
 
       <section style={{ padding: '80px 32px 120px', textAlign: 'center', position: 'relative', zIndex: 2 }}>
         <div style={{ maxWidth: '600px', margin: '0 auto', background: 'rgba(124,58,237,0.06)', border: '1px solid rgba(124,58,237,0.2)', borderRadius: '32px', padding: '60px 40px', backdropFilter: 'blur(20px)' }}>
-          <h2 style={{ fontSize: '2.2rem', fontWeight: '900', color: '#fff', marginBottom: '16px' }}>Pronto para criar?</h2>
-          <p style={{ color: 'rgba(255,255,255,0.4)', marginBottom: '36px', fontSize: '1rem' }}>Seu próximo vídeo começa com a emoção certa.</p>
+          <h2 style={{ fontSize: '2.2rem', fontWeight: '900', color: '#fff', marginBottom: '16px' }}>{t.ctaTitle}</h2>
+          <p style={{ color: 'rgba(255,255,255,0.4)', marginBottom: '36px', fontSize: '1rem' }}>{t.ctaDesc}</p>
           <button onClick={onEntrar}
             onMouseEnter={e => e.target.style.transform = 'scale(1.05)'}
             onMouseLeave={e => e.target.style.transform = 'scale(1)'}
-            style={{ padding: '18px 52px', borderRadius: '999px', border: 'none', background: 'linear-gradient(135deg, #7c3aed, #e94560)', color: '#fff', fontSize: '1rem', fontWeight: '700', letterSpacing: '2px', cursor: 'pointer', textTransform: 'uppercase', boxShadow: '0 0 60px rgba(124,58,237,0.4)', transition: 'transform 0.2s ease' }}>Começar Grátis →</button>
+            style={{ padding: '18px 52px', borderRadius: '999px', border: 'none', background: 'linear-gradient(135deg, #7c3aed, #e94560)', color: '#fff', fontSize: '1rem', fontWeight: '700', letterSpacing: '2px', cursor: 'pointer', textTransform: 'uppercase', boxShadow: '0 0 60px rgba(124,58,237,0.4)', transition: 'transform 0.2s ease' }}>{t.startFree}</button>
         </div>
       </section>
 
-      <footer style={{ textAlign: 'center', padding: '32px', borderTop: '1px solid rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.15)', fontSize: '0.75rem', position: 'relative', zIndex: 2 }}>
-        Kit de Intenção Visual · Neurocinematografia para criadores
-      </footer>
+      <footer style={{ textAlign: 'center', padding: '32px', borderTop: '1px solid rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.15)', fontSize: '0.75rem', position: 'relative', zIndex: 2 }}>{t.footer}</footer>
     </div>
   )
 }
 
 function TelaAuth({ onLogin }) {
+  const t = useT()
+  const isRTL = detectLang() === 'ar'
   const [modo, setModo] = useState('login')
   const [nome, setNome] = useState('')
   const [email, setEmail] = useState('')
@@ -269,42 +271,44 @@ function TelaAuth({ onLogin }) {
       const data = await res.json()
       if (!res.ok) { setErro(data.detail || 'Erro'); setLoading(false); return }
       onLogin(data.token, data.nome)
-    } catch { setErro('Erro de conexão com o servidor') }
+    } catch { setErro(t.connectionError) }
     setLoading(false)
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#050508', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Segoe UI', sans-serif" }}>
+    <div dir={isRTL ? 'rtl' : 'ltr'} style={{ minHeight: '100vh', background: '#050508', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Segoe UI', sans-serif" }}>
       <OrbField />
       <ParticleField color="#7c3aed" count={30} />
       <div style={{ width: '100%', maxWidth: '420px', padding: '0 24px', position: 'relative', zIndex: 2, animation: 'tiltIn 0.8s ease both' }}>
         <div style={{ textAlign: 'center', marginBottom: '40px' }}>
           <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: 'linear-gradient(135deg, #7c3aed, #e94560)', margin: '0 auto 20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', boxShadow: '0 0 40px rgba(124,58,237,0.5)' }}>◈</div>
           <h1 style={{ fontSize: '1.8rem', fontWeight: '800', background: 'linear-gradient(135deg, #fff, #a78bfa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginBottom: '8px' }}>Kit de Intenção Visual</h1>
-          <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.9rem' }}>{modo === 'login' ? 'Entre na sua conta' : 'Crie sua conta grátis'}</p>
+          <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.9rem' }}>{modo === 'login' ? t.loginTitle : t.registerTitle}</p>
         </div>
         <TiltCard glowColor="#7c3aed" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '28px', padding: '36px', backdropFilter: 'blur(20px)' }}>
           {modo === 'cadastro' && (
-            <input value={nome} onChange={e => setNome(e.target.value)} placeholder="Seu nome"
+            <input value={nome} onChange={e => setNome(e.target.value)} placeholder={t.namePlaceholder}
               onFocus={e => e.target.style.borderColor = 'rgba(124,58,237,0.6)'}
               onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.08)'}
               style={{ width: '100%', background: 'rgba(255,255,255,0.04)', color: '#fff', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px', padding: '15px 18px', fontSize: '0.95rem', marginBottom: '12px', boxSizing: 'border-box', outline: 'none', transition: 'border 0.2s' }} />
           )}
-          <input value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" type="email"
+          <input value={email} onChange={e => setEmail(e.target.value)} placeholder={t.emailPlaceholder} type="email"
             onFocus={e => e.target.style.borderColor = 'rgba(124,58,237,0.6)'}
             onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.08)'}
             style={{ width: '100%', background: 'rgba(255,255,255,0.04)', color: '#fff', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px', padding: '15px 18px', fontSize: '0.95rem', marginBottom: '12px', boxSizing: 'border-box', outline: 'none', transition: 'border 0.2s' }} />
-          <input value={senha} onChange={e => setSenha(e.target.value)} placeholder="Senha" type="password"
+          <input value={senha} onChange={e => setSenha(e.target.value)} placeholder={t.passwordPlaceholder} type="password"
             onFocus={e => e.target.style.borderColor = 'rgba(124,58,237,0.6)'}
             onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.08)'}
             style={{ width: '100%', background: 'rgba(255,255,255,0.04)', color: '#fff', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px', padding: '15px 18px', fontSize: '0.95rem', marginBottom: '20px', boxSizing: 'border-box', outline: 'none', transition: 'border 0.2s' }} />
           {erro && <p style={{ color: '#e94560', fontSize: '0.8rem', marginBottom: '12px', textAlign: 'center' }}>{erro}</p>}
           <button onClick={submeter} disabled={loading} style={{ width: '100%', padding: '16px', borderRadius: '999px', border: 'none', background: loading ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg, #7c3aed, #e94560)', color: loading ? 'rgba(255,255,255,0.3)' : '#fff', fontSize: '0.95rem', fontWeight: '700', letterSpacing: '2px', cursor: loading ? 'not-allowed' : 'pointer', textTransform: 'uppercase', boxShadow: loading ? 'none' : '0 0 30px rgba(124,58,237,0.3)', transition: 'all 0.3s' }}>
-            {loading ? 'Aguarde...' : modo === 'login' ? 'Entrar' : 'Criar Conta'}
+            {loading ? t.loading : modo === 'login' ? t.loginBtn : t.registerBtn}
           </button>
           <p style={{ textAlign: 'center', marginTop: '20px', color: 'rgba(255,255,255,0.25)', fontSize: '0.85rem' }}>
-            {modo === 'login' ? 'Não tem conta? ' : 'Já tem conta? '}
-            <span onClick={() => setModo(modo === 'login' ? 'cadastro' : 'login')} style={{ color: '#a78bfa', cursor: 'pointer', fontWeight: '600' }}>{modo === 'login' ? 'Cadastre-se' : 'Entre'}</span>
+            {modo === 'login' ? t.noAccount : t.hasAccount}{' '}
+            <span onClick={() => setModo(modo === 'login' ? 'cadastro' : 'login')} style={{ color: '#a78bfa', cursor: 'pointer', fontWeight: '600' }}>
+              {modo === 'login' ? t.signUp : t.signIn}
+            </span>
           </p>
         </TiltCard>
       </div>
@@ -313,12 +317,12 @@ function TelaAuth({ onLogin }) {
 }
 
 const PRESETS = {
-  blade: { keywords: ['blade','cyberpunk','neon','futurista','tech','matrix'], nome: 'Cyberpunk', emocao: 'Tensão · Adrenalina · Desorientação', paleta: ['#0a0a0f','#00fff7','#7c3aed','#ff006e'], tipografia: 'Rajdhani Bold', ritmo: '32 cortes/min', bpm: 140, iluminacao: 'Neon lateral · Chuva de luz', enquadramento: 'Close extremo', bg: ['#0a0a0f','#0d1f3c','#1a0533'], glow: '#00fff7', accent: '#7c3aed', cenas: [{ desc: 'Silhueta contra neon', luz: 'Contraluz ciano', cam: 'Close extremo' },{ desc: 'Chuva em slow motion', luz: 'Reflexo no asfalto', cam: 'Travelling lateral' },{ desc: 'Olhar direto câmera', luz: 'LED lateral duro', cam: 'Close olhos' }], audio: { tipo: 'cyberpunk', descricao: 'Sintetizador metálico + glitch', efeito: 'Gera tensão e adrenalina' } },
-  poder: { keywords: ['poder','urgência','força','luxo','cartier','sdm','rap','trap','épico'], nome: 'Luxo Cinematográfico', emocao: 'Poder · Status · Inevitabilidade', paleta: ['#0d0500','#8B3A00','#C8860A','#F5D78E'], tipografia: 'Montserrat Black', ritmo: '22 cortes/min', bpm: 95, iluminacao: 'Tungstênio quente · Sombra épica', enquadramento: 'Ângulo baixo', bg: ['#0d0500','#1a0800','#2d1200'], glow: '#C8860A', accent: '#8B3A00', cenas: [{ desc: 'Detalhe relógio dourado', luz: 'Luz dourada lateral', cam: 'Macro extremo' },{ desc: 'Artista em ambiente luxuoso', luz: 'Tungstênio + fill suave', cam: 'Ângulo baixo' },{ desc: 'Fumaça em slow motion', luz: 'Backlight dourado', cam: 'Travelling lateral' }], audio: { tipo: 'trap', descricao: 'Kick 808 grave + hi-hat seco', efeito: 'Ativa sensação de poder e status' } },
-  romance: { keywords: ['romance','amor','suave','delicado','intimidade','saudade'], nome: 'Romance Etéreo', emocao: 'Nostalgia · Vulnerabilidade · Conexão', paleta: ['#1a0010','#8B0050','#FF6B9D','#FFD6E8'], tipografia: 'Cormorant Garamond', ritmo: '12 cortes/min', bpm: 72, iluminacao: 'Luz difusa · Bokeh profundo', enquadramento: 'Plano aberto', bg: ['#1a0010','#2d0020','#1a0a1a'], glow: '#FF6B9D', accent: '#8B0050', cenas: [{ desc: 'Mãos se tocando', luz: 'Janela natural difusa', cam: 'Close olhos' },{ desc: 'Olhar perdido na distância', luz: 'Golden hour', cam: 'Plano aberto' },{ desc: 'Detalhe — lágrima', luz: 'Rim light suave', cam: 'Macro extremo' }], audio: { tipo: 'romance', descricao: 'Pad suave + melodia de piano', efeito: 'Ativa oxitocina — gera empatia' } },
-  misterio: { keywords: ['mistério','sombrio','dark','noir','suspense','thriller','crime'], nome: 'Noir Contemporâneo', emocao: 'Ansiedade · Fascínio · Perigo', paleta: ['#000000','#0a0a0a','#1a1a2e','#4a4a6a'], tipografia: 'Playfair Display', ritmo: '18 cortes/min', bpm: 85, iluminacao: 'Contraluz duro · Sombra absoluta', enquadramento: 'Plano médio', bg: ['#000000','#0a0a1a','#050510'], glow: '#6a6aaa', accent: '#2a2a4a', cenas: [{ desc: 'Rosto metade na sombra', luz: 'Single key lateral', cam: 'Close extremo' },{ desc: 'Corredor com névoa', luz: 'Luz de fundo fraca', cam: 'Plano médio' },{ desc: 'Detalhe — mão nervosa', luz: 'Sem fill, só key', cam: 'Close olhos' }], audio: { tipo: 'noir', descricao: 'Baixo profundo + silêncio dramático', efeito: 'Ativa amígdala — gera tensão' } },
-  epico: { keywords: ['épico','guerra','batalha','herói','dune','grandioso','histórico'], nome: 'Épico Cinematográfico', emocao: 'Grandiosidade · Sacrifício · Destino', paleta: ['#0a0500','#3d1a00','#8B4513','#DAA520'], tipografia: 'Cinzel Bold', ritmo: '18 cortes/min', bpm: 88, iluminacao: 'Luz épica lateral · Névoa dramática', enquadramento: 'Grande angular', bg: ['#0a0500','#1a0800','#2d1500'], glow: '#DAA520', accent: '#8B4513', cenas: [{ desc: 'Exército no horizonte', luz: 'Pôr do sol épico', cam: 'Plano aberto' },{ desc: 'Herói de costas', luz: 'Backlight dourado', cam: 'Ângulo baixo' },{ desc: 'Olhar determinado', luz: 'Luz lateral dura', cam: 'Close extremo' }], audio: { tipo: 'noir', descricao: 'Orquestra + percussão épica', efeito: 'Ativa senso de grandiosidade' } },
-  minimalista: { keywords: ['minimalista','clean','simples','moderno','elegante','corporativo'], nome: 'Minimalismo Moderno', emocao: 'Clareza · Confiança · Sofisticação', paleta: ['#ffffff','#f5f5f5','#333333','#000000'], tipografia: 'Helvetica Neue Light', ritmo: '15 cortes/min', bpm: 80, iluminacao: 'Luz difusa branca · Alto key', enquadramento: 'Plano médio', bg: ['#0a0a0a','#111111','#1a1a1a'], glow: '#ffffff', accent: '#333333', cenas: [{ desc: 'Produto em fundo branco', luz: 'Softbox frontal', cam: 'Plano médio' },{ desc: 'Detalhe de textura', luz: 'Luz rasante lateral', cam: 'Macro extremo' },{ desc: 'Pessoa em ambiente clean', luz: 'Natural difusa', cam: 'Plano aberto' }], audio: { tipo: 'romance', descricao: 'Piano minimalista + silêncio', efeito: 'Transmite clareza e foco' } },
+  blade: { keywords: ['blade','cyberpunk','neon','futurista','tech','matrix','cyber','glitch'], nome: 'Cyberpunk', emocao: 'Tensão · Adrenalina · Desorientação', paleta: ['#0a0a0f','#00fff7','#7c3aed','#ff006e'], tipografia: 'Rajdhani Bold', ritmo: '32 cortes/min', bpm: 140, iluminacao: 'Neon lateral · Chuva de luz', enquadramento: 'Close extremo', bg: ['#0a0a0f','#0d1f3c','#1a0533'], glow: '#00fff7', accent: '#7c3aed', cenas: [{ desc: 'Silhueta contra neon', luz: 'Contraluz ciano', cam: 'Close extremo' },{ desc: 'Chuva em slow motion', luz: 'Reflexo no asfalto', cam: 'Travelling lateral' },{ desc: 'Olhar direto câmera', luz: 'LED lateral duro', cam: 'Close olhos' }], audio: { tipo: 'cyberpunk', descricao: 'Sintetizador metálico + glitch', efeito: 'Gera tensão e adrenalina' } },
+  poder: { keywords: ['poder','urgência','força','luxo','cartier','sdm','rap','trap','épico','luxury','power','gold','golden','rich'], nome: 'Luxo Cinematográfico', emocao: 'Poder · Status · Inevitabilidade', paleta: ['#0d0500','#8B3A00','#C8860A','#F5D78E'], tipografia: 'Montserrat Black', ritmo: '22 cortes/min', bpm: 95, iluminacao: 'Tungstênio quente · Sombra épica', enquadramento: 'Ângulo baixo', bg: ['#0d0500','#1a0800','#2d1200'], glow: '#C8860A', accent: '#8B3A00', cenas: [{ desc: 'Detalhe relógio dourado', luz: 'Luz dourada lateral', cam: 'Macro extremo' },{ desc: 'Artista em ambiente luxuoso', luz: 'Tungstênio + fill suave', cam: 'Ângulo baixo' },{ desc: 'Fumaça em slow motion', luz: 'Backlight dourado', cam: 'Travelling lateral' }], audio: { tipo: 'trap', descricao: 'Kick 808 grave + hi-hat seco', efeito: 'Ativa sensação de poder e status' } },
+  romance: { keywords: ['romance','amor','suave','delicado','intimidade','saudade','love','soft','tender','romantic'], nome: 'Romance Etéreo', emocao: 'Nostalgia · Vulnerabilidade · Conexão', paleta: ['#1a0010','#8B0050','#FF6B9D','#FFD6E8'], tipografia: 'Cormorant Garamond', ritmo: '12 cortes/min', bpm: 72, iluminacao: 'Luz difusa · Bokeh profundo', enquadramento: 'Plano aberto', bg: ['#1a0010','#2d0020','#1a0a1a'], glow: '#FF6B9D', accent: '#8B0050', cenas: [{ desc: 'Mãos se tocando', luz: 'Janela natural difusa', cam: 'Close olhos' },{ desc: 'Olhar perdido na distância', luz: 'Golden hour', cam: 'Plano aberto' },{ desc: 'Detalhe — lágrima', luz: 'Rim light suave', cam: 'Macro extremo' }], audio: { tipo: 'romance', descricao: 'Pad suave + melodia de piano', efeito: 'Ativa oxitocina — gera empatia' } },
+  misterio: { keywords: ['mistério','sombrio','dark','noir','suspense','thriller','crime','mystery','shadow'], nome: 'Noir Contemporâneo', emocao: 'Ansiedade · Fascínio · Perigo', paleta: ['#000000','#0a0a0a','#1a1a2e','#4a4a6a'], tipografia: 'Playfair Display', ritmo: '18 cortes/min', bpm: 85, iluminacao: 'Contraluz duro · Sombra absoluta', enquadramento: 'Plano médio', bg: ['#000000','#0a0a1a','#050510'], glow: '#6a6aaa', accent: '#2a2a4a', cenas: [{ desc: 'Rosto metade na sombra', luz: 'Single key lateral', cam: 'Close extremo' },{ desc: 'Corredor com névoa', luz: 'Luz de fundo fraca', cam: 'Plano médio' },{ desc: 'Detalhe — mão nervosa', luz: 'Sem fill, só key', cam: 'Close olhos' }], audio: { tipo: 'noir', descricao: 'Baixo profundo + silêncio dramático', efeito: 'Ativa amígdala — gera tensão' } },
+  epico: { keywords: ['épico','guerra','batalha','herói','dune','grandioso','histórico','epic','war','hero','grand'], nome: 'Épico Cinematográfico', emocao: 'Grandiosidade · Sacrifício · Destino', paleta: ['#0a0500','#3d1a00','#8B4513','#DAA520'], tipografia: 'Cinzel Bold', ritmo: '18 cortes/min', bpm: 88, iluminacao: 'Luz épica lateral · Névoa dramática', enquadramento: 'Grande angular', bg: ['#0a0500','#1a0800','#2d1500'], glow: '#DAA520', accent: '#8B4513', cenas: [{ desc: 'Exército no horizonte', luz: 'Pôr do sol épico', cam: 'Plano aberto' },{ desc: 'Herói de costas', luz: 'Backlight dourado', cam: 'Ângulo baixo' },{ desc: 'Olhar determinado', luz: 'Luz lateral dura', cam: 'Close extremo' }], audio: { tipo: 'noir', descricao: 'Orquestra + percussão épica', efeito: 'Ativa senso de grandiosidade' } },
+  minimalista: { keywords: ['minimalista','clean','simples','moderno','elegante','corporativo','minimal','simple','modern','elegant'], nome: 'Minimalismo Moderno', emocao: 'Clareza · Confiança · Sofisticação', paleta: ['#ffffff','#f5f5f5','#333333','#000000'], tipografia: 'Helvetica Neue Light', ritmo: '15 cortes/min', bpm: 80, iluminacao: 'Luz difusa branca · Alto key', enquadramento: 'Plano médio', bg: ['#0a0a0a','#111111','#1a1a1a'], glow: '#ffffff', accent: '#333333', cenas: [{ desc: 'Produto em fundo branco', luz: 'Softbox frontal', cam: 'Plano médio' },{ desc: 'Detalhe de textura', luz: 'Luz rasante lateral', cam: 'Macro extremo' },{ desc: 'Pessoa em ambiente clean', luz: 'Natural difusa', cam: 'Plano aberto' }], audio: { tipo: 'romance', descricao: 'Piano minimalista + silêncio', efeito: 'Transmite clareza e foco' } },
 }
 
 const FORMATOS = {
@@ -490,6 +494,8 @@ function BPMVisual({ bpm, glow, active }) {
 }
 
 export default function App() {
+  const t = useT()
+  const isRTL = detectLang() === 'ar'
   const { user, login, logout } = useAuth()
   const [mostrarAuth, setMostrarAuth] = useState(false)
   const [emocao, setEmocao] = useState('')
@@ -545,51 +551,50 @@ export default function App() {
       })
       const data = await res.json()
       if (data.url) window.location.href = data.url
-    } catch { alert('Erro ao iniciar checkout. Tente novamente.') }
+    } catch { alert(t.checkoutError) }
   }
 
   const active = resultado || preview
 
   return (
-    <div style={{ minHeight: '100vh', background: '#050508', color: '#fff', fontFamily: "'Segoe UI', sans-serif" }}>
+    <div dir={isRTL ? 'rtl' : 'ltr'} style={{ minHeight: '100vh', background: '#050508', color: '#fff', fontFamily: "'Segoe UI', sans-serif" }}>
       <OrbField />
       <ParticleField color={active ? active.glow : '#7c3aed'} count={40} />
 
       <div style={{ maxWidth: '760px', margin: '0 auto', padding: '80px 28px 60px', position: 'relative', zIndex: 2 }}>
-
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '40px' }}>
           <div style={{ animation: 'slideIn 0.6s ease both' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
               <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: 'linear-gradient(135deg, #7c3aed, #e94560)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', boxShadow: `0 0 20px ${active ? active.glow + '66' : 'rgba(124,58,237,0.5)'}`, transition: 'box-shadow 1s ease' }}>◈</div>
-              <div style={{ fontSize: '0.6rem', letterSpacing: '3px', color: '#e94560', textTransform: 'uppercase' }}>Neurocinematografia</div>
+              <div style={{ fontSize: '0.6rem', letterSpacing: '3px', color: '#e94560', textTransform: 'uppercase' }}>{t.badge}</div>
             </div>
             <h1 style={{ fontSize: '2rem', fontWeight: '900', lineHeight: 1.1, background: `linear-gradient(135deg, #fff 0%, ${active ? active.glow : '#a78bfa'} 60%, #e94560 100%)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', transition: 'background 1.2s ease', margin: 0 }}>Kit de Intenção<br />Visual</h1>
           </div>
           <div style={{ textAlign: 'right', animation: 'slideIn 0.6s ease both' }}>
-            <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', marginBottom: '8px' }}>Olá, {user.nome}</p>
+            <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', marginBottom: '8px' }}>{t.hello}, {user.nome}</p>
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
               <button onClick={assinarPro}
                 onMouseEnter={e => e.target.style.transform = 'scale(1.05)'}
                 onMouseLeave={e => e.target.style.transform = 'scale(1)'}
-                style={{ background: 'linear-gradient(135deg, #7c3aed, #e94560)', border: 'none', borderRadius: '999px', padding: '7px 18px', color: '#fff', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer', letterSpacing: '1px', boxShadow: '0 0 20px rgba(124,58,237,0.4)', transition: 'transform 0.2s' }}>⚡ Pro</button>
-              <button onClick={logout} style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '999px', padding: '7px 16px', color: 'rgba(255,255,255,0.35)', fontSize: '0.75rem', cursor: 'pointer' }}>Sair</button>
+                style={{ background: 'linear-gradient(135deg, #7c3aed, #e94560)', border: 'none', borderRadius: '999px', padding: '7px 18px', color: '#fff', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer', letterSpacing: '1px', boxShadow: '0 0 20px rgba(124,58,237,0.4)', transition: 'transform 0.2s' }}>{t.pro}</button>
+              <button onClick={logout} style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '999px', padding: '7px 16px', color: 'rgba(255,255,255,0.35)', fontSize: '0.75rem', cursor: 'pointer' }}>{t.logout}</button>
             </div>
           </div>
         </div>
 
         <div style={{ display: 'flex', gap: '8px', marginBottom: '36px', background: 'rgba(255,255,255,0.02)', borderRadius: '999px', padding: '4px', width: 'fit-content', border: '1px solid rgba(255,255,255,0.05)' }}>
-          {[['gerar', 'Gerar Kit'], ['historico', 'DNA Visual']].map(([key, label]) => (
+          {[['gerar', t.generateKit], ['historico', t.dnaVisual]].map(([key, label]) => (
             <button key={key} onClick={() => { setAba(key); if (key === 'historico') carregarKits() }} style={{ padding: '8px 22px', borderRadius: '999px', border: 'none', background: aba === key ? 'linear-gradient(135deg, rgba(124,58,237,0.4), rgba(233,69,96,0.3))' : 'transparent', color: aba === key ? '#fff' : 'rgba(255,255,255,0.35)', fontSize: '0.8rem', cursor: 'pointer', fontWeight: aba === key ? '700' : '400', transition: 'all 0.3s', boxShadow: aba === key ? '0 0 20px rgba(124,58,237,0.2)' : 'none' }}>{label}</button>
           ))}
         </div>
 
         {aba === 'historico' && (
           <div style={{ animation: 'fadeUp 0.5s ease both' }}>
-            <h2 style={{ fontSize: '1.4rem', fontWeight: '800', color: '#fff', marginBottom: '24px' }}>DNA Visual</h2>
+            <h2 style={{ fontSize: '1.4rem', fontWeight: '800', color: '#fff', marginBottom: '24px' }}>{t.dnaVisual}</h2>
             {meusKits.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '80px 40px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '24px' }}>
                 <p style={{ fontSize: '2.5rem', marginBottom: '12px' }}>🎬</p>
-                <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.9rem' }}>Nenhum kit gerado ainda.</p>
+                <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.9rem' }}>{t.emptyKits}</p>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -601,7 +606,7 @@ export default function App() {
                         <p style={{ fontSize: '1rem', fontWeight: '700', color: '#fff', marginBottom: '4px' }}>{kit.estilo}</p>
                         <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', fontStyle: 'italic' }}>"{kit.emocao}"</p>
                       </div>
-                      <p style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.2)' }}>{new Date(kit.criado_em).toLocaleDateString('pt-BR')}</p>
+                      <p style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.2)' }}>{new Date(kit.criado_em).toLocaleDateString()}</p>
                     </div>
                   </TiltCard>
                 ))}
@@ -613,7 +618,7 @@ export default function App() {
         {aba === 'gerar' && (
           <div style={{ animation: 'fadeUp 0.5s ease both' }}>
             <div style={{ marginBottom: '24px' }}>
-              <p style={{ fontSize: '0.6rem', letterSpacing: '3px', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', marginBottom: '12px' }}>Formato</p>
+              <p style={{ fontSize: '0.6rem', letterSpacing: '3px', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', marginBottom: '12px' }}>{t.format}</p>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 {Object.entries(FORMATOS).map(([key, fmt]) => (
                   <button key={key} onClick={() => setFormato(key)} style={{ padding: '8px 18px', borderRadius: '999px', border: `1px solid ${formato === key ? (active ? active.glow : '#7c3aed') : 'rgba(255,255,255,0.08)'}`, background: formato === key ? `${active ? active.glow : '#7c3aed'}18` : 'rgba(255,255,255,0.02)', color: formato === key ? (active ? active.glow : '#a78bfa') : 'rgba(255,255,255,0.3)', fontSize: '0.8rem', cursor: 'pointer', transition: 'all 0.3s ease', fontWeight: formato === key ? '700' : '400', boxShadow: formato === key ? `0 0 16px ${active ? active.glow + '33' : 'rgba(124,58,237,0.2)'}` : 'none' }}>
@@ -629,18 +634,17 @@ export default function App() {
               </TiltCard>
             )}
 
-            <textarea value={emocao} onChange={e => setEmocao(e.target.value)}
-              placeholder="Ex: quero algo como o clipe Cartier Santos do SDM — luxuoso, dourado, poderoso..."
-              style={{ width: '100%', height: '110px', background: 'rgba(255,255,255,0.02)', color: '#fff', border: `1px solid ${active ? active.glow + '44' : 'rgba(124,58,237,0.2)'}`, borderRadius: '20px', padding: '20px 24px', fontSize: '0.95rem', resize: 'none', boxSizing: 'border-box', outline: 'none', lineHeight: 1.6, backdropFilter: 'blur(10px)', transition: 'border 0.5s ease', boxShadow: active ? `0 0 30px ${active.glow}11` : 'none' }}
+            <textarea value={emocao} onChange={e => setEmocao(e.target.value)} placeholder={t.placeholder}
+              style={{ width: '100%', height: '110px', background: 'rgba(255,255,255,0.02)', color: '#fff', border: `1px solid ${active ? active.glow + '44' : 'rgba(124,58,237,0.2)'}`, borderRadius: '20px', padding: '20px 24px', fontSize: '0.95rem', resize: 'none', boxSizing: 'border-box', outline: 'none', lineHeight: 1.6, backdropFilter: 'blur(10px)', transition: 'border 0.5s ease', boxShadow: active ? `0 0 30px ${active.glow}11` : 'none', direction: isRTL ? 'rtl' : 'ltr' }}
             />
 
             <div style={{ display: 'flex', gap: '12px', marginTop: '14px' }}>
               <button onClick={gerarKit} disabled={loading} style={{ flex: 1, padding: '17px', borderRadius: '999px', border: 'none', background: loading ? 'rgba(255,255,255,0.04)' : `linear-gradient(135deg, ${active ? active.glow : '#7c3aed'}, #e94560)`, color: loading ? 'rgba(255,255,255,0.25)' : '#fff', fontSize: '0.9rem', fontWeight: '700', letterSpacing: '2px', cursor: loading ? 'not-allowed' : 'pointer', textTransform: 'uppercase', transition: 'all 0.5s ease', boxShadow: loading ? 'none' : `0 0 40px ${active ? active.glow + '44' : 'rgba(124,58,237,0.3)'}` }}>
-                {loading ? 'Gerando...' : 'Gerar Kit →'}
+                {loading ? t.generating : t.generateBtn}
               </button>
               {active && (
                 <button onClick={toggleAudio} style={{ padding: '17px 24px', borderRadius: '999px', border: `1px solid ${active.glow}44`, background: audioOn ? `${active.glow}22` : 'rgba(255,255,255,0.02)', color: audioOn ? active.glow : 'rgba(255,255,255,0.4)', fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.3s ease', fontWeight: '600', backdropFilter: 'blur(10px)' }}>
-                  {audioOn ? '⏹ Stop' : '▶ Ouvir'}
+                  {audioOn ? t.stopBtn : t.listenBtn}
                 </button>
               )}
             </div>
@@ -648,18 +652,18 @@ export default function App() {
             {resultado && (
               <div style={{ marginTop: '48px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 <TiltCard glowColor={resultado.glow} style={{ textAlign: 'center', padding: '28px', background: `${resultado.glow}0e`, border: `1px solid ${resultado.glow}33`, borderRadius: '24px', animation: 'tiltIn 0.6s ease both' }}>
-                  <p style={{ fontSize: '0.55rem', letterSpacing: '3px', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', marginBottom: '8px' }}>Estilo Detectado</p>
+                  <p style={{ fontSize: '0.55rem', letterSpacing: '3px', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', marginBottom: '8px' }}>{t.detectedStyle}</p>
                   <p style={{ fontSize: '1.4rem', fontWeight: '900', color: resultado.glow, marginBottom: '6px', textShadow: `0 0 30px ${resultado.glow}` }}>{resultado.nome}</p>
                   <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.35)' }}>{resultado.emocao}</p>
                 </TiltCard>
 
                 <TiltCard glowColor={resultado.glow} style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${resultado.glow}18`, borderRadius: '24px', padding: '24px' }}>
-                  <p style={{ fontSize: '0.55rem', letterSpacing: '3px', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', marginBottom: '16px' }}>🎵 BPM Musical</p>
+                  <p style={{ fontSize: '0.55rem', letterSpacing: '3px', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', marginBottom: '16px' }}>{t.bpmLabel}</p>
                   <BPMVisual bpm={resultado.bpm} glow={resultado.glow} active={true} />
                 </TiltCard>
 
                 <TiltCard glowColor={resultado.glow} style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${resultado.glow}18`, borderRadius: '24px', padding: '24px' }}>
-                  <p style={{ fontSize: '0.55rem', letterSpacing: '3px', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', marginBottom: '16px' }}>🎨 Paleta de Cores</p>
+                  <p style={{ fontSize: '0.55rem', letterSpacing: '3px', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', marginBottom: '16px' }}>{t.paletteLabel}</p>
                   <div style={{ display: 'flex', gap: '10px' }}>
                     {resultado.paleta.map(cor => (
                       <div key={cor} style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'center' }}>
@@ -674,7 +678,7 @@ export default function App() {
                 </TiltCard>
 
                 <TiltCard glowColor={resultado.glow} style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${resultado.glow}18`, borderRadius: '24px', padding: '24px' }}>
-                  <p style={{ fontSize: '0.55rem', letterSpacing: '3px', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', marginBottom: '16px' }}>📐 Enquadramento</p>
+                  <p style={{ fontSize: '0.55rem', letterSpacing: '3px', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', marginBottom: '16px' }}>{t.framingLabel}</p>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                     {resultado.cenas.map((c, i) => (
                       <div key={i} style={{ background: 'rgba(0,0,0,0.3)', borderRadius: '16px', padding: '14px', border: `1px solid ${resultado.glow}14` }}>
@@ -687,16 +691,16 @@ export default function App() {
                 </TiltCard>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  {[{ emoji: '✍️', label: 'Tipografia', valor: resultado.tipografia },{ emoji: '✂️', label: 'Ritmo de Corte', valor: resultado.ritmo },{ emoji: '💡', label: 'Iluminação', valor: resultado.iluminacao },{ emoji: '🎬', label: 'Formato', valor: `${FORMATOS[formato].label} · ${FORMATOS[formato].ratio}` }].map(item => (
+                  {[{ label: t.typographyLabel, valor: resultado.tipografia },{ label: t.rhythmLabel, valor: resultado.ritmo },{ label: t.lightLabel, valor: resultado.iluminacao },{ label: t.formatLabel, valor: `${FORMATOS[formato].label} · ${FORMATOS[formato].ratio}` }].map(item => (
                     <TiltCard key={item.label} glowColor={resultado.glow} style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${resultado.glow}14`, borderRadius: '20px', padding: '20px' }}>
-                      <p style={{ fontSize: '0.55rem', letterSpacing: '2px', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', marginBottom: '8px' }}>{item.emoji} {item.label}</p>
+                      <p style={{ fontSize: '0.55rem', letterSpacing: '2px', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', marginBottom: '8px' }}>{item.label}</p>
                       <p style={{ fontSize: '0.88rem', color: '#e2e8f0', fontWeight: '600' }}>{item.valor}</p>
                     </TiltCard>
                   ))}
                 </div>
 
                 <TiltCard glowColor={resultado.glow} style={{ background: `linear-gradient(135deg, ${resultado.glow}0e, rgba(233,69,96,0.05))`, border: `1px solid ${resultado.glow}28`, borderRadius: '24px', padding: '24px' }}>
-                  <p style={{ fontSize: '0.55rem', letterSpacing: '3px', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', marginBottom: '16px' }}>🎥 Direção de Cena</p>
+                  <p style={{ fontSize: '0.55rem', letterSpacing: '3px', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', marginBottom: '16px' }}>{t.sceneLabel}</p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                     {resultado.cenas.map((c, i) => (
                       <div key={i} style={{ display: 'flex', gap: '14px', alignItems: 'flex-start' }}>
@@ -717,3 +721,5 @@ export default function App() {
     </div>
   )
 }
+ENDOFFILE
+echo "done"
