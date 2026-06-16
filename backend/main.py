@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, Boolean
+from sqlalchemy import create_engine, Column, Integer, String, DateTime, Boolean, text, inspect
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime
@@ -48,6 +48,19 @@ class KitSalvo(Base):
     criado_em = Column(DateTime, default=datetime.utcnow)
 
 Base.metadata.create_all(bind=engine)
+
+# Migração automática de colunas faltantes
+with engine.connect() as conn:
+    inspector = inspect(engine)
+    colunas = [c["name"] for c in inspector.get_columns("kits")]
+    for coluna, ddl in [
+        ("usuario_email", "ALTER TABLE kits ADD COLUMN usuario_email VARCHAR"),
+        ("share_id", "ALTER TABLE kits ADD COLUMN share_id VARCHAR"),
+        ("publico", "ALTER TABLE kits ADD COLUMN publico BOOLEAN DEFAULT 0"),
+    ]:
+        if coluna not in colunas:
+            conn.execute(text(ddl))
+    conn.commit()
 
 PRESETS = {
     "blade": {
