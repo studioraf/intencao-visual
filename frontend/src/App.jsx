@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import * as Tone from 'tone'
 import { useT, detectLang } from './i18n'
+import CinematicMiniPlayer from './MiniPlayer'
 
 const API = 'https://intencao-visual-production.up.railway.app'
 
@@ -132,9 +133,8 @@ function GlitchText({ text, style }) {
   )
 }
 
-// ── MINIPLAYER CINEMATICO ─────────────────────────────────────────────────────
-// Renderiza em tempo real todos os elementos visuais: paleta, fonte, ritmo, BPM, cena
-function CinematicMiniPlayer({ preset, formato, phase = 'idle' }) {
+// CinematicMiniPlayer importado de ./MiniPlayer
+function _CinematicMiniPlayerOLD({ preset, formato, phase = 'idle' }) {
   const canvasRef = useRef(null)
   const stateRef = useRef({ cenaIdx: 0, lastCut: 0, flash: 0, grain: [], buildStep: 0, lastBuild: 0 })
   const fmt = (FORMATOS && FORMATOS[formato]) || { w: 150, h: 267, ratio: '9:16', label: 'Clipe' }
