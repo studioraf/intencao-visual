@@ -1,4 +1,3 @@
-cat > /mnt/user-data/outputs/App.jsx << 'ENDOFFILE'
 import { useState, useEffect, useRef } from 'react'
 import * as Tone from 'tone'
 import { useT, detectLang } from './i18n'
@@ -1040,5 +1039,3 @@ export default function App() {
     </div>
   )
 }
-ENDOFFILE
-echo "done"
