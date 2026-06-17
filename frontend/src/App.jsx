@@ -1,3 +1,4 @@
+cat > /mnt/user-data/outputs/App.jsx << 'ENDOFFILE'
 import { useState, useEffect, useRef } from 'react'
 import * as Tone from 'tone'
 import { useT, detectLang } from './i18n'
@@ -89,14 +90,12 @@ function OrbField() {
         @keyframes tiltIn { from{opacity:0;transform:perspective(800px) rotateX(20deg) translateY(40px)} to{opacity:1;transform:perspective(800px) rotateX(0deg) translateY(0)} }
         @keyframes glowPulse { 0%,100%{opacity:0.5} 50%{opacity:1} }
         @keyframes glitchA { 0%,94%,100%{opacity:0;transform:none} 95%{opacity:0.8;transform:translateX(-3px) skewX(-5deg)} 97%{opacity:0.6;transform:translateX(3px) skewX(3deg)} 99%{opacity:0;transform:none} }
-        @keyframes scanline { 0%{transform:translateY(-100%)} 100%{transform:translateY(100vh)} }
-        @keyframes colorShift { 0%{filter:hue-rotate(0deg)} 100%{filter:hue-rotate(360deg)} }
-        @keyframes cameraMove { 0%{transform:scale(1) translate(0,0)} 25%{transform:scale(1.05) translate(-2%,-1%)} 50%{transform:scale(1.08) translate(1%,2%)} 75%{transform:scale(1.03) translate(2%,-2%)} 100%{transform:scale(1) translate(0,0)} }
-        @keyframes flashCut { 0%,90%{opacity:1} 91%,95%{opacity:0} 96%,100%{opacity:1} }
-        @keyframes bokeh { 0%,100%{filter:blur(8px) brightness(1.2)} 50%{filter:blur(12px) brightness(1.5)} }
-        @keyframes neonFlicker { 0%,100%{opacity:1} 92%{opacity:1} 93%{opacity:0.4} 94%{opacity:1} 97%{opacity:0.6} 98%{opacity:1} }
-        @keyframes filmGrain { 0%{opacity:0.03} 50%{opacity:0.08} 100%{opacity:0.03} }
-        @keyframes previewSlide { from{opacity:0;transform:translateX(20px)} to{opacity:1;transform:translateX(0)} }
+        @keyframes buildIn { from{opacity:0;transform:translateX(-10px)} to{opacity:1;transform:translateX(0)} }
+        @keyframes barGrow { from{width:0} to{width:100%} }
+        @keyframes typewriter { from{width:0;overflow:hidden} to{width:100%;overflow:hidden} }
+        @keyframes colorDrop { from{opacity:0;transform:translateY(-20px) scale(0.8)} to{opacity:1;transform:translateY(0) scale(1)} }
+        @keyframes waveform { 0%,100%{transform:scaleY(0.3)} 50%{transform:scaleY(1)} }
+        @keyframes scanH { 0%{transform:translateX(-100%)} 100%{transform:translateX(400%)} }
       `}</style>
     </div>
   )
@@ -134,12 +133,12 @@ function GlitchText({ text, style }) {
   )
 }
 
-// ── Pré-visualização interativa em tempo real ─────────────────────────────────
-function CinematicPreview({ preset, formato }) {
+// ── MINIPLAYER CINEMATICO ─────────────────────────────────────────────────────
+// Renderiza em tempo real todos os elementos visuais: paleta, fonte, ritmo, BPM, cena
+function CinematicMiniPlayer({ preset, formato, phase = 'idle' }) {
   const canvasRef = useRef(null)
-  const frameRef = useRef(0)
-  const timeRef = useRef(0)
-  const fmt = FORMATOS[formato]
+  const stateRef = useRef({ cenaIdx: 0, lastCut: 0, flash: 0, grain: [], buildStep: 0, lastBuild: 0 })
+  const fmt = (FORMATOS && FORMATOS[formato]) || { w: 150, h: 267, ratio: '9:16', label: 'Clipe' }
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -152,45 +151,46 @@ function CinematicPreview({ preset, formato }) {
     const cortes = parseInt(preset.ritmo) || 20
     const msPorCorte = 60000 / cortes
 
-    let raf
-    let cenaIdx = 0
-    let lastCut = 0
-    let flash = 0
-    let grain = []
-    for (let i = 0; i < 200; i++) grain.push({ x: Math.random() * W, y: Math.random() * H, a: Math.random() })
+    const s = stateRef.current
+    s.grain = Array.from({ length: 150 }, () => ({ x: Math.random() * W, y: Math.random() * H }))
+    s.buildStep = 0
+    s.lastBuild = 0
 
     function hexToRgb(hex) {
-      const r = parseInt(hex.slice(1, 3), 16)
-      const g = parseInt(hex.slice(3, 5), 16)
-      const b = parseInt(hex.slice(5, 7), 16)
-      return { r, g, b }
+      try {
+        const h = hex.replace('#', '')
+        return { r: parseInt(h.slice(0,2),16), g: parseInt(h.slice(2,4),16), b: parseInt(h.slice(4,6),16) }
+      } catch { return {r:124,g:58,b:237} }
     }
 
+    let raf
     function draw(ts) {
-      const dt = ts - timeRef.current
-      timeRef.current = ts
-
-      // Flash no corte
-      if (ts - lastCut > msPorCorte) {
-        lastCut = ts
-        cenaIdx = (cenaIdx + 1) % preset.cenas.length
-        flash = 1
+      // Build progressivo: a cada 600ms revela um novo elemento
+      if (ts - s.lastBuild > 600 && s.buildStep < 6) {
+        s.buildStep++
+        s.lastBuild = ts
       }
-      if (flash > 0) flash = Math.max(0, flash - dt / 80)
+
+      // Corte de câmera
+      if (ts - s.lastCut > msPorCorte) {
+        s.lastCut = ts
+        s.cenaIdx = (s.cenaIdx + 1) % preset.cenas.length
+        s.flash = 1
+      }
+      if (s.flash > 0) s.flash = Math.max(0, s.flash - 16/80)
 
       ctx.clearRect(0, 0, W, H)
 
-      // Fundo gradiente com movimento de câmera
-      const moveX = Math.sin(ts / 4000) * 8
-      const moveY = Math.cos(ts / 5000) * 5
-      const scale = 1 + Math.sin(ts / 3000) * 0.03
+      // === LAYER 1: Fundo com movimento de câmera ===
+      const moveX = Math.sin(ts / 4000) * 6
+      const moveY = Math.cos(ts / 5000) * 4
+      const scale = 1 + Math.sin(ts / 3000) * 0.025
 
       ctx.save()
-      ctx.translate(W / 2 + moveX, H / 2 + moveY)
+      ctx.translate(W/2 + moveX, H/2 + moveY)
       ctx.scale(scale, scale)
-      ctx.translate(-W / 2, -H / 2)
+      ctx.translate(-W/2, -H/2)
 
-      // Gradiente de fundo
       const bg = ctx.createLinearGradient(0, 0, W, H)
       bg.addColorStop(0, preset.bg[0])
       bg.addColorStop(0.5, preset.bg[1])
@@ -198,195 +198,242 @@ function CinematicPreview({ preset, formato }) {
       ctx.fillStyle = bg
       ctx.fillRect(0, 0, W, H)
 
-      // Grade de luz
-      ctx.strokeStyle = preset.glow + '08'
+      // Grid de luz (layer cinematográfico)
+      ctx.strokeStyle = preset.glow + '0a'
       ctx.lineWidth = 0.5
-      for (let x = 0; x < W; x += 20) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke() }
-      for (let y = 0; y < H; y += 20) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke() }
-
-      // Barras de paleta animadas na base
-      preset.paleta.forEach((cor, i) => {
-        const barH = (H * 0.25) * (0.4 + 0.6 * Math.abs(Math.sin(ts / msPerBeat + i)))
-        const rgb = hexToRgb(cor)
-        ctx.fillStyle = `rgba(${rgb.r},${rgb.g},${rgb.b},0.7)`
-        const bw = W / preset.paleta.length
-        ctx.beginPath()
-        ctx.roundRect(i * bw + 2, H - barH, bw - 4, barH, [4, 4, 0, 0])
-        ctx.fill()
-      })
-
-      // Elemento central da cena
-      const cena = preset.cenas[cenaIdx]
+      for (let x = 0; x < W; x += 18) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke() }
+      for (let y = 0; y < H; y += 18) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke() }
       ctx.restore()
 
-      // Enquadramento — linhas de composição
-      ctx.strokeStyle = preset.glow + '30'
-      ctx.lineWidth = 1
-      // Regra dos terços
-      ctx.setLineDash([4, 4])
-      ctx.beginPath(); ctx.moveTo(W / 3, 0); ctx.lineTo(W / 3, H); ctx.stroke()
-      ctx.beginPath(); ctx.moveTo((W / 3) * 2, 0); ctx.lineTo((W / 3) * 2, H); ctx.stroke()
-      ctx.beginPath(); ctx.moveTo(0, H / 3); ctx.lineTo(W, H / 3); ctx.stroke()
-      ctx.beginPath(); ctx.moveTo(0, (H / 3) * 2); ctx.lineTo(W, (H / 3) * 2); ctx.stroke()
-      ctx.setLineDash([])
+      // === LAYER 2: PALETA — barras crescendo da base (buildStep >= 1) ===
+      if (s.buildStep >= 1) {
+        const progress = Math.min(1, (s.buildStep - 1) * 0.4 + 0.6)
+        preset.paleta.forEach((cor, i) => {
+          const beatAnim = 0.4 + 0.6 * Math.abs(Math.sin(ts / msPerBeat + i * 0.8))
+          const maxH = H * 0.22 * beatAnim * progress
+          const rgb = hexToRgb(cor)
+          ctx.fillStyle = `rgba(${rgb.r},${rgb.g},${rgb.b},0.75)`
+          const bw = W / preset.paleta.length
+          if (ctx.roundRect) {
+            ctx.beginPath()
+            ctx.roundRect(i * bw + 1, H - maxH, bw - 2, maxH, [3, 3, 0, 0])
+            ctx.fill()
+          } else {
+            ctx.fillRect(i * bw + 1, H - maxH, bw - 2, maxH)
+          }
+          // Glow no topo de cada barra
+          const grad = ctx.createLinearGradient(0, H - maxH - 4, 0, H - maxH + 4)
+          grad.addColorStop(0, `rgba(${rgb.r},${rgb.g},${rgb.b},0)`)
+          grad.addColorStop(0.5, `rgba(${rgb.r},${rgb.g},${rgb.b},0.9)`)
+          grad.addColorStop(1, `rgba(${rgb.r},${rgb.g},${rgb.b},0)`)
+          ctx.fillStyle = grad
+          ctx.fillRect(i * bw, H - maxH - 4, bw, 8)
+        })
+      }
 
-      // Vinheta
-      const vig = ctx.createRadialGradient(W / 2, H / 2, H * 0.2, W / 2, H / 2, H * 0.8)
+      // === LAYER 3: REGRA DOS TERÇOS (buildStep >= 2) ===
+      if (s.buildStep >= 2) {
+        const opacity = Math.min(1, (s.buildStep - 2) * 0.5 + 0.3) * 0.25
+        ctx.strokeStyle = preset.glow + Math.floor(opacity * 255).toString(16).padStart(2,'0')
+        ctx.lineWidth = 0.8
+        ctx.setLineDash([3, 4])
+        ctx.beginPath(); ctx.moveTo(W/3, 0); ctx.lineTo(W/3, H); ctx.stroke()
+        ctx.beginPath(); ctx.moveTo(W*2/3, 0); ctx.lineTo(W*2/3, H); ctx.stroke()
+        ctx.beginPath(); ctx.moveTo(0, H/3); ctx.lineTo(W, H/3); ctx.stroke()
+        ctx.beginPath(); ctx.moveTo(0, H*2/3); ctx.lineTo(W, H*2/3); ctx.stroke()
+        ctx.setLineDash([])
+
+        // Pontos de intersecção
+        [[W/3,H/3],[W*2/3,H/3],[W/3,H*2/3],[W*2/3,H*2/3]].forEach(([px,py]) => {
+          ctx.beginPath()
+          ctx.arc(px, py, 3, 0, Math.PI*2)
+          ctx.fillStyle = preset.glow + '66'
+          ctx.fill()
+        })
+      }
+
+      // === LAYER 4: VINHETA ===
+      const vig = ctx.createRadialGradient(W/2, H/2, H*0.15, W/2, H/2, H*0.75)
       vig.addColorStop(0, 'transparent')
-      vig.addColorStop(1, 'rgba(0,0,0,0.7)')
+      vig.addColorStop(1, 'rgba(0,0,0,0.75)')
       ctx.fillStyle = vig
       ctx.fillRect(0, 0, W, H)
 
-      // Grain cinematográfico
-      ctx.fillStyle = `rgba(255,255,255,${0.02 + Math.random() * 0.03})`
-      grain.forEach(g => {
-        g.x += (Math.random() - 0.5) * 0.5
-        g.y += (Math.random() - 0.5) * 0.5
-        if (g.x < 0) g.x = W; if (g.x > W) g.x = 0
-        if (g.y < 0) g.y = H; if (g.y > H) g.y = 0
-        ctx.fillRect(g.x, g.y, Math.random() * 1.5, Math.random() * 1.5)
+      // === LAYER 5: GRAIN CINEMATOGRÁFICO ===
+      ctx.fillStyle = `rgba(255,255,255,${0.015 + Math.random()*0.025})`
+      s.grain.forEach(g => {
+        g.x += (Math.random()-0.5)*0.8
+        g.y += (Math.random()-0.5)*0.8
+        if (g.x<0) g.x=W; if (g.x>W) g.x=0
+        if (g.y<0) g.y=H; if (g.y>H) g.y=0
+        ctx.fillRect(g.x, g.y, Math.random()*1.5, Math.random()*1.5)
       })
 
-      // HUD — info da cena
-      ctx.fillStyle = 'rgba(0,0,0,0.55)'
-      ctx.fillRect(0, H - 40, W, 40)
+      // === LAYER 6: HUD INFERIOR (buildStep >= 3) ===
+      if (s.buildStep >= 3) {
+        const cena = preset.cenas[s.cenaIdx]
+        ctx.fillStyle = 'rgba(0,0,0,0.65)'
+        ctx.fillRect(0, H - 52, W, 52)
 
-      ctx.fillStyle = preset.glow
-      ctx.font = `bold ${Math.min(9, W * 0.04)}px monospace`
-      ctx.fillText(cena.cam.toUpperCase(), 6, H - 26)
+        // Scan line animada no HUD
+        const scanX = ((ts % 2000) / 2000) * (W + 60) - 30
+        const scanGrad = ctx.createLinearGradient(scanX-15, 0, scanX+15, 0)
+        scanGrad.addColorStop(0, 'transparent')
+        scanGrad.addColorStop(0.5, preset.glow + '22')
+        scanGrad.addColorStop(1, 'transparent')
+        ctx.fillStyle = scanGrad
+        ctx.fillRect(0, H-52, W, 52)
 
-      ctx.fillStyle = 'rgba(255,255,255,0.7)'
-      ctx.font = `${Math.min(8, W * 0.035)}px monospace`
-      ctx.fillText(cena.desc, 6, H - 12)
+        ctx.fillStyle = preset.glow
+        ctx.font = `bold ${Math.min(8, W*0.04)}px monospace`
+        ctx.fillText(cena.cam.toUpperCase(), 6, H - 38)
 
-      // BPM pulse dot
-      const beatPhase = ((ts % msPerBeat) / msPerBeat)
-      const dotR = beatPhase < 0.15 ? 5 : 3
-      ctx.fillStyle = beatPhase < 0.15 ? preset.glow : preset.glow + '66'
-      ctx.shadowBlur = beatPhase < 0.15 ? 12 : 0
-      ctx.shadowColor = preset.glow
-      ctx.beginPath()
-      ctx.arc(W - 12, H - 28, dotR, 0, Math.PI * 2)
-      ctx.fill()
-      ctx.shadowBlur = 0
+        ctx.fillStyle = 'rgba(255,255,255,0.65)'
+        ctx.font = `${Math.min(7, W*0.035)}px monospace`
+        const desc = cena.desc.length > 22 ? cena.desc.slice(0,22)+'…' : cena.desc
+        ctx.fillText(desc, 6, H - 24)
 
-      ctx.fillStyle = preset.glow + 'aa'
-      ctx.font = `bold ${Math.min(8, W * 0.035)}px monospace`
-      ctx.fillText(`${bpm} BPM`, W - 44, H - 12)
+        ctx.fillStyle = 'rgba(255,255,255,0.3)'
+        ctx.font = `${Math.min(6, W*0.03)}px monospace`
+        ctx.fillText('💡 ' + cena.luz.slice(0,20), 6, H - 10)
+      }
 
-      // Flash de corte
-      if (flash > 0) {
-        ctx.fillStyle = `rgba(255,255,255,${flash * 0.6})`
+      // === LAYER 7: WAVEFORM BPM (buildStep >= 4) ===
+      if (s.buildStep >= 4) {
+        const beatPhase = (ts % msPerBeat) / msPerBeat
+        const waveY = 12
+        const waveH = 16
+        const bars = 24
+        for (let i = 0; i < bars; i++) {
+          const t2 = (i / bars + ts / msPerBeat) % 1
+          const h2 = (0.3 + 0.7 * Math.abs(Math.sin(t2 * Math.PI * 2 + i))) * waveH
+          const rgb = hexToRgb(preset.glow)
+          ctx.fillStyle = `rgba(${rgb.r},${rgb.g},${rgb.b},${0.4 + 0.5*(i/bars)})`
+          ctx.fillRect(i * (W/bars), waveY + (waveH-h2)/2, W/bars - 1, h2)
+        }
+
+        // BPM pulse dot
+        const dotR = beatPhase < 0.12 ? 5 : 3
+        ctx.fillStyle = beatPhase < 0.12 ? preset.glow : preset.glow + '66'
+        ctx.shadowBlur = beatPhase < 0.12 ? 14 : 0
+        ctx.shadowColor = preset.glow
+        ctx.beginPath()
+        ctx.arc(W - 10, 10, dotR, 0, Math.PI*2)
+        ctx.fill()
+        ctx.shadowBlur = 0
+      }
+
+      // === LAYER 8: TIPOGRAFIA (buildStep >= 5) ===
+      if (s.buildStep >= 5) {
+        const fontName = preset.tipografia || 'sans-serif'
+        const shortFont = fontName.split(' ')[0]
+        ctx.fillStyle = preset.glow + 'cc'
+        ctx.font = `bold ${Math.min(9, W*0.042)}px monospace`
+        ctx.fillText('FONT: ' + shortFont.toUpperCase(), 6, 40)
+
+        // Barra de progresso do ritmo
+        ctx.fillStyle = 'rgba(255,255,255,0.08)'
+        ctx.fillRect(6, 46, W - 12, 3)
+        const corteProgress = ((ts % msPorCorte) / msPorCorte)
+        ctx.fillStyle = preset.glow
+        ctx.fillRect(6, 46, (W-12) * corteProgress, 3)
+        ctx.fillStyle = 'rgba(255,255,255,0.25)'
+        ctx.font = `${Math.min(6,W*0.03)}px monospace`
+        ctx.fillText(preset.ritmo, 6, 58)
+      }
+
+      // === LAYER 9: FLASH DE CORTE ===
+      if (s.flash > 0) {
+        ctx.fillStyle = `rgba(255,255,255,${s.flash * 0.5})`
         ctx.fillRect(0, 0, W, H)
       }
 
-      // Borda glow
-      ctx.strokeStyle = preset.glow + '44'
-      ctx.lineWidth = 2
-      ctx.strokeRect(1, 1, W - 2, H - 2)
+      // === LAYER 10: BORDA GLOW + FORMAT LABEL ===
+      ctx.strokeStyle = preset.glow + '55'
+      ctx.lineWidth = 1.5
+      ctx.strokeRect(1, 1, W-2, H-2)
 
-      // Label de formato
-      ctx.fillStyle = 'rgba(0,0,0,0.6)'
-      ctx.fillRect(6, 6, 70, 18)
+      ctx.fillStyle = 'rgba(0,0,0,0.7)'
+      ctx.fillRect(4, H - 68, 60, 14)
       ctx.fillStyle = preset.glow
-      ctx.font = `bold 7px monospace`
-      ctx.fillText(`${fmt.ratio} · ${fmt.label.toUpperCase()}`, 10, 18)
+      ctx.font = 'bold 6px monospace'
+      ctx.fillText(`${fmt.ratio} · ${(fmt.label||'').toUpperCase()}`, 7, H - 57)
 
-      frameRef.current = raf = requestAnimationFrame(draw)
+      // BPM no canto inferior direito
+      ctx.fillStyle = preset.glow + 'aa'
+      ctx.font = `bold ${Math.min(8,W*0.038)}px monospace`
+      ctx.textAlign = 'right'
+      ctx.fillText(`${bpm} BPM`, W - 5, H - 57)
+      ctx.textAlign = 'left'
+
+      raf = requestAnimationFrame(draw)
     }
 
-    timeRef.current = performance.now()
     raf = requestAnimationFrame(draw)
     return () => cancelAnimationFrame(raf)
   }, [preset, formato])
 
   return (
     <div style={{ position: 'relative', display: 'inline-block' }}>
-      <canvas ref={canvasRef}
-        style={{ borderRadius: '14px', display: 'block', boxShadow: `0 0 40px ${preset.glow}44, 0 0 80px ${preset.glow}22` }}
-      />
-      <div style={{ position: 'absolute', top: '8px', right: '8px', background: 'rgba(0,0,0,0.7)', borderRadius: '6px', padding: '3px 8px', fontSize: '7px', color: preset.glow, letterSpacing: '2px', fontFamily: 'monospace' }}>
-        ● AO VIVO
+      <canvas ref={canvasRef} style={{ borderRadius: '16px', display: 'block', boxShadow: `0 0 50px ${preset.glow}55, 0 0 100px ${preset.glow}22` }} />
+      <div style={{ position: 'absolute', top: '8px', right: '8px', background: 'rgba(0,0,0,0.75)', borderRadius: '6px', padding: '3px 8px', fontSize: '6px', color: preset.glow, letterSpacing: '2px', fontFamily: 'monospace', display: 'flex', alignItems: 'center', gap: '4px' }}>
+        <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#e94560', animation: 'glowPulse 1s infinite' }} />
+        AO VIVO
       </div>
     </div>
   )
 }
 
-// ── Templates sugeridos ────────────────────────────────────────────────────────
+// ── Painel lateral de build (mostra elementos sendo construídos) ──────────────
+function BuildPanel({ preset, active }) {
+  const [steps, setSteps] = useState([])
+  const items = [
+    { icon: '🎨', label: 'Paleta', val: preset.paleta.slice(0,2).join(' · ') },
+    { icon: '📐', label: 'Enquadramento', val: preset.enquadramento },
+    { icon: '✂️', label: 'Ritmo', val: preset.ritmo },
+    { icon: '🎵', label: 'BPM', val: `${preset.bpm} BPM` },
+    { icon: '✍️', label: 'Tipografia', val: preset.tipografia },
+    { icon: '💡', label: 'Iluminação', val: preset.iluminacao.split('·')[0].trim() },
+  ]
+
+  useEffect(() => {
+    setSteps([])
+    items.forEach((item, i) => {
+      setTimeout(() => setSteps(prev => [...prev, i]), i * 600 + 200)
+    })
+  }, [preset.nome])
+
+  if (!active) return null
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '180px' }}>
+      <p style={{ fontSize: '0.55rem', letterSpacing: '3px', color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', marginBottom: '8px' }}>
+        🔧 Construindo kit...
+      </p>
+      {items.map((item, i) => (
+        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', borderRadius: '10px', background: steps.includes(i) ? `${preset.glow}12` : 'rgba(255,255,255,0.02)', border: `1px solid ${steps.includes(i) ? preset.glow+'33' : 'rgba(255,255,255,0.05)'}`, opacity: steps.includes(i) ? 1 : 0.25, transition: 'all 0.5s ease', animation: steps.includes(i) ? 'buildIn 0.4s ease both' : 'none' }}>
+          <span style={{ fontSize: '0.75rem' }}>{item.icon}</span>
+          <div>
+            <p style={{ fontSize: '0.5rem', color: 'rgba(255,255,255,0.3)', letterSpacing: '1px', textTransform: 'uppercase' }}>{item.label}</p>
+            <p style={{ fontSize: '0.7rem', color: steps.includes(i) ? preset.glow : 'rgba(255,255,255,0.3)', fontWeight: '700', fontFamily: 'monospace' }}>{item.val}</p>
+          </div>
+          {steps.includes(i) && (
+            <div style={{ marginLeft: 'auto', width: '6px', height: '6px', borderRadius: '50%', background: preset.glow, boxShadow: `0 0 8px ${preset.glow}` }} />
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
+
 const TEMPLATES = [
-  { label: '⚡ Trap luxuoso', prompt: 'clipe estilo trap luxo cartier poder status', preset: 'poder' },
-  { label: '🌙 Noir misterioso', prompt: 'suspense dark noir thriller crime sombrio', preset: 'misterio' },
-  { label: '💜 Cyberpunk', prompt: 'cyberpunk neon futurista tech glitch matrix', preset: 'blade' },
-  { label: '🌹 Romance', prompt: 'romance amor suave intimidade saudade delicado', preset: 'romance' },
-  { label: '⚔️ Épico', prompt: 'épico guerra herói grandioso batalha destino', preset: 'epico' },
-  { label: '◻ Minimalista', prompt: 'minimalista clean moderno elegante simples', preset: 'minimalista' },
+  { label: '⚡ Trap luxuoso', prompt: 'clipe estilo trap luxo cartier poder status' },
+  { label: '🌙 Noir', prompt: 'suspense dark noir thriller crime sombrio' },
+  { label: '💜 Cyberpunk', prompt: 'cyberpunk neon futurista tech glitch matrix' },
+  { label: '🌹 Romance', prompt: 'romance amor suave intimidade saudade' },
+  { label: '⚔️ Épico', prompt: 'épico guerra herói grandioso batalha' },
+  { label: '◻ Minimal', prompt: 'minimalista clean moderno elegante simples' },
 ]
-
-// ── Feedback emocional ─────────────────────────────────────────────────────────
-function FeedbackEmocional({ glow, kitId, token }) {
-  const [nota, setNota] = useState(null)
-  const [enviado, setEnviado] = useState(false)
-  const emojis = ['😕', '😐', '🙂', '😊', '🔥']
-
-  async function enviar(n) {
-    setNota(n)
-    setEnviado(true)
-    // Futuramente salvar no backend
-  }
-
-  if (enviado) return (
-    <div style={{ textAlign: 'center', padding: '16px', color: glow, fontSize: '0.85rem', fontWeight: '700' }}>
-      ✓ Obrigado pelo feedback!
-    </div>
-  )
-
-  return (
-    <div style={{ textAlign: 'center', padding: '20px' }}>
-      <p style={{ fontSize: '0.6rem', letterSpacing: '3px', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', marginBottom: '14px' }}>
-        🎯 Esse kit capturou sua emoção?
-      </p>
-      <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-        {emojis.map((e, i) => (
-          <button key={i} onClick={() => enviar(i + 1)}
-            style={{ fontSize: '1.5rem', background: nota === i + 1 ? `${glow}22` : 'transparent', border: `1px solid ${nota === i + 1 ? glow : 'rgba(255,255,255,0.1)'}`, borderRadius: '12px', padding: '8px 12px', cursor: 'pointer', transition: 'all 0.2s' }}
-            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.2)'}
-            onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
-          >{e}</button>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-// ── Múltiplas variações ────────────────────────────────────────────────────────
-function VariacoesKit({ emocao, formato, onSelecionar, glow }) {
-  const lower = emocao.toLowerCase()
-  const matches = Object.values(PRESETS).filter(p =>
-    p.keywords.some(k => lower.includes(k))
-  ).slice(0, 3)
-
-  // Se não achou nada, não mostra
-  if (matches.length < 2) return null
-
-  return (
-    <div style={{ marginBottom: '20px', animation: 'fadeUp 0.4s ease both' }}>
-      <p style={{ fontSize: '0.6rem', letterSpacing: '3px', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', marginBottom: '12px' }}>
-        🎨 Variações detectadas — escolha uma:
-      </p>
-      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-        {matches.map((p, i) => (
-          <button key={i} onClick={() => onSelecionar(p)}
-            style={{ padding: '10px 18px', borderRadius: '999px', border: `1px solid ${p.glow}44`, background: `${p.glow}12`, color: p.glow, fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer', transition: 'all 0.2s', letterSpacing: '1px' }}
-            onMouseEnter={e => { e.currentTarget.style.background = `${p.glow}28`; e.currentTarget.style.transform = 'scale(1.05)' }}
-            onMouseLeave={e => { e.currentTarget.style.background = `${p.glow}12`; e.currentTarget.style.transform = 'scale(1)' }}
-          >
-            {p.nome}
-          </button>
-        ))}
-      </div>
-    </div>
-  )
-}
 
 function ShareToast({ url, onClose }) {
   const [copied, setCopied] = useState(false)
@@ -422,21 +469,14 @@ function PaginaKitPublico({ shareId }) {
       .then(data => { setKit(data); setLoading(false) })
       .catch(() => { setErro(true); setLoading(false) })
   }, [shareId])
-  const CORES = {
-    'Cyberpunk': '#00fff7',
-    'Luxo Cinematográfico': '#C8860A',
-    'Romance Etéreo': '#FF6B9D',
-    'Noir Contemporâneo': '#6a6aaa',
-    'Épico Cinematográfico': '#DAA520',
-    'Minimalismo Moderno': '#ffffff',
-  }
+  const CORES = { 'Cyberpunk': '#00fff7', 'Luxo Cinematográfico': '#C8860A', 'Romance Etéreo': '#FF6B9D', 'Noir Contemporâneo': '#6a6aaa', 'Épico Cinematográfico': '#DAA520', 'Minimalismo Moderno': '#ffffff' }
   const glow = kit ? (CORES[kit.estilo] || '#7c3aed') : '#7c3aed'
   if (loading) return <div style={{ minHeight: '100vh', background: '#050508', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><OrbField /><p style={{ color: 'rgba(255,255,255,0.4)', position: 'relative', zIndex: 2 }}>Carregando...</p></div>
   if (erro || !kit) return (
     <div style={{ minHeight: '100vh', background: '#050508', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px' }}>
       <OrbField />
       <p style={{ color: '#e94560', fontSize: '1.2rem', position: 'relative', zIndex: 2 }}>Kit não encontrado</p>
-      <button onClick={() => window.location.href = '/'} style={{ padding: '12px 28px', borderRadius: '999px', border: 'none', background: 'linear-gradient(135deg, #7c3aed, #e94560)', color: '#fff', cursor: 'pointer', fontWeight: '700', position: 'relative', zIndex: 2 }}>Criar meu kit</button>
+      <button onClick={() => window.location.href = '/'} style={{ padding: '12px 28px', borderRadius: '999px', border: 'none', background: 'linear-gradient(135deg, #7c3aed, #e94560)', color: '#fff', cursor: 'pointer', fontWeight: '700', position: 'relative', zIndex: 2 }}>Criar meu kit grátis →</button>
     </div>
   )
   return (
@@ -468,14 +508,9 @@ function PaginaKitPublico({ shareId }) {
           ))}
         </div>
         <div style={{ textAlign: 'center', padding: '40px', background: `${glow}08`, border: `1px solid ${glow}22`, borderRadius: '24px' }}>
-          <p style={{ fontSize: '0.7rem', letterSpacing: '3px', color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', marginBottom: '12px' }}>Gerado com</p>
-          <p style={{ fontSize: '1.2rem', fontWeight: '900', color: glow, marginBottom: '8px', textShadow: `0 0 20px ${glow}` }}>Kit de Intenção Visual</p>
-          <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.85rem', marginBottom: '24px' }}>Neurocinematografia para criadores de vídeo</p>
-          <button onClick={() => window.location.href = '/'}
-            style={{ padding: '14px 36px', borderRadius: '999px', border: 'none', background: 'linear-gradient(135deg, #7c3aed, #e94560)', color: '#fff', fontSize: '0.9rem', fontWeight: '700', cursor: 'pointer', letterSpacing: '2px', textTransform: 'uppercase', boxShadow: '0 0 40px rgba(124,58,237,0.4)' }}
-            onMouseEnter={e => e.target.style.transform = 'scale(1.05)'}
-            onMouseLeave={e => e.target.style.transform = 'scale(1)'}
-          >Criar meu kit grátis →</button>
+          <p style={{ fontSize: '1.2rem', fontWeight: '900', color: glow, marginBottom: '8px' }}>Kit de Intenção Visual</p>
+          <p style={{ color: 'rgba(255,255,255,0.3)', marginBottom: '24px' }}>Neurocinematografia para criadores</p>
+          <button onClick={() => window.location.href = '/'} style={{ padding: '14px 36px', borderRadius: '999px', border: 'none', background: 'linear-gradient(135deg, #7c3aed, #e94560)', color: '#fff', fontWeight: '700', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '2px' }}>Criar meu kit grátis →</button>
         </div>
       </div>
     </div>
@@ -536,6 +571,13 @@ function TelaLanding({ onEntrar }) {
               <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.35)' }}>{e.emocao}</p>
             </TiltCard>
           ))}
+        </div>
+      </section>
+      <section style={{ padding: '80px 32px 120px', textAlign: 'center', position: 'relative', zIndex: 2 }}>
+        <div style={{ maxWidth: '600px', margin: '0 auto', background: 'rgba(124,58,237,0.06)', border: '1px solid rgba(124,58,237,0.2)', borderRadius: '32px', padding: '60px 40px' }}>
+          <h2 style={{ fontSize: '2.2rem', fontWeight: '900', color: '#fff', marginBottom: '16px' }}>{t.ctaTitle}</h2>
+          <p style={{ color: 'rgba(255,255,255,0.4)', marginBottom: '36px' }}>{t.ctaDesc}</p>
+          <button onClick={onEntrar} style={{ padding: '18px 52px', borderRadius: '999px', border: 'none', background: 'linear-gradient(135deg, #7c3aed, #e94560)', color: '#fff', fontSize: '1rem', fontWeight: '700', cursor: 'pointer', textTransform: 'uppercase', boxShadow: '0 0 60px rgba(124,58,237,0.4)' }}>{t.startFree}</button>
         </div>
       </section>
       <footer style={{ textAlign: 'center', padding: '32px', borderTop: '1px solid rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.15)', fontSize: '0.75rem', position: 'relative', zIndex: 2 }}>{t.footer}</footer>
@@ -601,7 +643,6 @@ const PRESETS = {
 }
 const FORMATOS = { youtube:{label:'YouTube',ratio:'16:9',icon:'▶',w:320,h:180}, instagram:{label:'Instagram',ratio:'1:1',icon:'◈',w:240,h:240}, filme:{label:'Filme',ratio:'2.39:1',icon:'◻',w:320,h:134}, clipe:{label:'Clipe',ratio:'9:16',icon:'◆',w:150,h:267} }
 const DEFAULT = PRESETS.poder
-
 function detectPreset(text) {
   const lower = text.toLowerCase()
   for (const [,p] of Object.entries(PRESETS)) { if (p.keywords.some(k => lower.includes(k))) return p }
@@ -694,19 +735,18 @@ function BPMVisual({ bpm, glow, active }) {
 
 function CameraView({ tipo, glow }) {
   const configs = {
-    'Close extremo': (<svg viewBox="0 0 200 120" style={{width:'100%',height:'100%'}}><rect x="60" y="20" width="80" height="80" rx="40" fill="none" stroke={glow} strokeWidth="1.5" opacity="0.4"/><rect x="75" y="35" width="50" height="50" rx="25" fill="none" stroke={glow} strokeWidth="1.5" opacity="0.7"/><circle cx="100" cy="60" r="14" fill={glow} opacity="0.15"/><circle cx="100" cy="60" r="6" fill={glow} opacity="0.6"/><text x="100" y="108" textAnchor="middle" fill={glow} fontSize="7" opacity="0.5" letterSpacing="2">EXTREME CLOSE-UP</text></svg>),
-    'Ângulo baixo': (<svg viewBox="0 0 200 120" style={{width:'100%',height:'100%'}}><polygon points="100,15 30,95 170,95" fill="none" stroke={glow} strokeWidth="1.5" opacity="0.5"/><circle cx="100" cy="15" r="5" fill={glow} opacity="0.8"/><text x="100" y="116" textAnchor="middle" fill={glow} fontSize="7" opacity="0.5" letterSpacing="2">LOW ANGLE</text></svg>),
-    'Macro extremo': (<svg viewBox="0 0 200 120" style={{width:'100%',height:'100%'}}><circle cx="100" cy="55" r="35" fill="none" stroke={glow} strokeWidth="1.5" opacity="0.3"/><circle cx="100" cy="55" r="20" fill="none" stroke={glow} strokeWidth="1.5" opacity="0.5"/><circle cx="100" cy="55" r="8" fill={glow} opacity="0.2"/><circle cx="100" cy="55" r="3" fill={glow} opacity="0.9"/><text x="100" y="108" textAnchor="middle" fill={glow} fontSize="7" opacity="0.5" letterSpacing="2">MACRO LENS</text></svg>),
-    'Plano aberto': (<svg viewBox="0 0 200 120" style={{width:'100%',height:'100%'}}><rect x="15" y="25" width="170" height="70" rx="4" fill="none" stroke={glow} strokeWidth="1.5" opacity="0.4"/><rect x="85" y="45" width="30" height="30" fill="none" stroke={glow} strokeWidth="1" opacity="0.6"/><text x="100" y="108" textAnchor="middle" fill={glow} fontSize="7" opacity="0.5" letterSpacing="2">WIDE SHOT</text></svg>),
-    'Travelling lateral': (<svg viewBox="0 0 200 120" style={{width:'100%',height:'100%'}}><rect x="70" y="45" width="60" height="30" rx="3" fill="none" stroke={glow} strokeWidth="1.5" opacity="0.5"/><polygon points="20,55 5,60 20,65" fill={glow} opacity="0.6"/><line x1="20" y1="60" x2="70" y2="60" stroke={glow} strokeWidth="1.5" opacity="0.4" strokeDasharray="5 3"/><text x="100" y="108" textAnchor="middle" fill={glow} fontSize="7" opacity="0.5" letterSpacing="2">TRACKING SHOT</text></svg>),
-    'Plano médio': (<svg viewBox="0 0 200 120" style={{width:'100%',height:'100%'}}><rect x="40" y="15" width="120" height="90" rx="4" fill="none" stroke={glow} strokeWidth="1.5" opacity="0.4"/><rect x="75" y="25" width="50" height="45" fill="none" stroke={glow} strokeWidth="1" opacity="0.6"/><text x="100" y="112" textAnchor="middle" fill={glow} fontSize="7" opacity="0.5" letterSpacing="2">MEDIUM SHOT</text></svg>),
-    'Close olhos': (<svg viewBox="0 0 200 120" style={{width:'100%',height:'100%'}}><path d="M30,60 Q100,20 170,60 Q100,100 30,60" fill="none" stroke={glow} strokeWidth="1.5" opacity="0.5"/><ellipse cx="100" cy="60" rx="22" ry="16" fill="none" stroke={glow} strokeWidth="1.5" opacity="0.7"/><circle cx="100" cy="60" r="4" fill={glow} opacity="0.7"/><text x="100" y="108" textAnchor="middle" fill={glow} fontSize="7" opacity="0.5" letterSpacing="2">INSERT SHOT</text></svg>),
-    'Grande angular': (<svg viewBox="0 0 200 120" style={{width:'100%',height:'100%'}}><path d="M5,60 Q100,10 195,60 Q100,110 5,60" fill="none" stroke={glow} strokeWidth="1.5" opacity="0.4"/><rect x="20" y="30" width="160" height="60" rx="4" fill="none" stroke={glow} strokeWidth="1" opacity="0.3"/><text x="100" y="112" textAnchor="middle" fill={glow} fontSize="7" opacity="0.5" letterSpacing="2">WIDE ANGLE</text></svg>),
+    'Close extremo': (<svg viewBox="0 0 200 120" style={{width:'100%',height:'100%'}}><rect x="60" y="20" width="80" height="80" rx="40" fill="none" stroke={glow} strokeWidth="1.5" opacity="0.4"/><rect x="75" y="35" width="50" height="50" rx="25" fill="none" stroke={glow} strokeWidth="1.5" opacity="0.7"/><circle cx="100" cy="60" r="14" fill={glow} opacity="0.15"/><circle cx="100" cy="60" r="6" fill={glow} opacity="0.6"/><text x="100" y="108" textAnchor="middle" fill={glow} fontSize="7" opacity="0.5">EXTREME CLOSE-UP</text></svg>),
+    'Ângulo baixo': (<svg viewBox="0 0 200 120" style={{width:'100%',height:'100%'}}><polygon points="100,15 30,95 170,95" fill="none" stroke={glow} strokeWidth="1.5" opacity="0.5"/><circle cx="100" cy="15" r="5" fill={glow} opacity="0.8"/><text x="100" y="116" textAnchor="middle" fill={glow} fontSize="7" opacity="0.5">LOW ANGLE</text></svg>),
+    'Macro extremo': (<svg viewBox="0 0 200 120" style={{width:'100%',height:'100%'}}><circle cx="100" cy="55" r="35" fill="none" stroke={glow} strokeWidth="1.5" opacity="0.3"/><circle cx="100" cy="55" r="20" fill="none" stroke={glow} strokeWidth="1.5" opacity="0.5"/><circle cx="100" cy="55" r="8" fill={glow} opacity="0.2"/><circle cx="100" cy="55" r="3" fill={glow} opacity="0.9"/><text x="100" y="108" textAnchor="middle" fill={glow} fontSize="7" opacity="0.5">MACRO LENS</text></svg>),
+    'Plano aberto': (<svg viewBox="0 0 200 120" style={{width:'100%',height:'100%'}}><rect x="15" y="25" width="170" height="70" rx="4" fill="none" stroke={glow} strokeWidth="1.5" opacity="0.4"/><rect x="85" y="45" width="30" height="30" fill="none" stroke={glow} strokeWidth="1" opacity="0.6"/><text x="100" y="108" textAnchor="middle" fill={glow} fontSize="7" opacity="0.5">WIDE SHOT</text></svg>),
+    'Travelling lateral': (<svg viewBox="0 0 200 120" style={{width:'100%',height:'100%'}}><rect x="70" y="45" width="60" height="30" rx="3" fill="none" stroke={glow} strokeWidth="1.5" opacity="0.5"/><polygon points="20,55 5,60 20,65" fill={glow} opacity="0.6"/><line x1="20" y1="60" x2="70" y2="60" stroke={glow} strokeWidth="1.5" opacity="0.4" strokeDasharray="5 3"/><text x="100" y="108" textAnchor="middle" fill={glow} fontSize="7" opacity="0.5">TRACKING SHOT</text></svg>),
+    'Plano médio': (<svg viewBox="0 0 200 120" style={{width:'100%',height:'100%'}}><rect x="40" y="15" width="120" height="90" rx="4" fill="none" stroke={glow} strokeWidth="1.5" opacity="0.4"/><rect x="75" y="25" width="50" height="45" fill="none" stroke={glow} strokeWidth="1" opacity="0.6"/><text x="100" y="112" textAnchor="middle" fill={glow} fontSize="7" opacity="0.5">MEDIUM SHOT</text></svg>),
+    'Close olhos': (<svg viewBox="0 0 200 120" style={{width:'100%',height:'100%'}}><path d="M30,60 Q100,20 170,60 Q100,100 30,60" fill="none" stroke={glow} strokeWidth="1.5" opacity="0.5"/><ellipse cx="100" cy="60" rx="22" ry="16" fill="none" stroke={glow} strokeWidth="1.5" opacity="0.7"/><circle cx="100" cy="60" r="4" fill={glow} opacity="0.7"/><text x="100" y="108" textAnchor="middle" fill={glow} fontSize="7" opacity="0.5">INSERT SHOT</text></svg>),
+    'Grande angular': (<svg viewBox="0 0 200 120" style={{width:'100%',height:'100%'}}><path d="M5,60 Q100,10 195,60 Q100,110 5,60" fill="none" stroke={glow} strokeWidth="1.5" opacity="0.4"/><rect x="20" y="30" width="160" height="60" rx="4" fill="none" stroke={glow} strokeWidth="1" opacity="0.3"/><text x="100" y="112" textAnchor="middle" fill={glow} fontSize="7" opacity="0.5">WIDE ANGLE</text></svg>),
   }
   return <div style={{width:'100%',height:'100px'}}>{configs[tipo]||configs['Plano médio']}</div>
 }
 
-// ── Main App ──────────────────────────────────────────────────────────────────
 export default function App() {
   const t = useT()
   const isRTL = detectLang() === 'ar'
@@ -729,7 +769,6 @@ export default function App() {
   const shareMatch = path.match(/^\/kit\/([a-zA-Z0-9]+)$/)
   if (shareMatch) return <PaginaKitPublico shareId={shareMatch[1]} />
 
-  // Preview reativo com debounce ao digitar
   useEffect(() => {
     clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => {
@@ -746,11 +785,7 @@ export default function App() {
   async function gerarKit() {
     setLoading(true); setResultado(null); setKitId(null); setShareUrl(null)
     try {
-      const res = await fetch(`${API}/gerar-kit`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user.token}` },
-        body: JSON.stringify({ emocao, formato })
-      })
+      const res = await fetch(`${API}/gerar-kit`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user.token}` }, body: JSON.stringify({ emocao, formato }) })
       const data = await res.json()
       const local = detectPreset(emocao) || DEFAULT
       setResultado({ ...local, ...data, bg: local.bg, glow: local.glow, cenas: local.cenas })
@@ -774,8 +809,7 @@ export default function App() {
   async function carregarKits() {
     try {
       const res = await fetch(`${API}/meus-kits`, { headers: { 'Authorization': `Bearer ${user.token}` } })
-      const data = await res.json()
-      setMeusKits(data)
+      setMeusKits(await res.json())
     } catch {}
   }
 
@@ -801,7 +835,7 @@ export default function App() {
       <ParticleField color={active ? active.glow : '#7c3aed'} count={40} />
       {shareUrl && <ShareToast url={shareUrl} onClose={() => setShareUrl(null)} />}
 
-      <div style={{ maxWidth: '760px', margin: '0 auto', padding: '80px 28px 60px', position: 'relative', zIndex: 2 }}>
+      <div style={{ maxWidth: '860px', margin: '0 auto', padding: '80px 28px 60px', position: 'relative', zIndex: 2 }}>
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '40px' }}>
           <div style={{ animation: 'slideIn 0.6s ease both' }}>
@@ -820,7 +854,7 @@ export default function App() {
           </div>
         </div>
 
-        {/* Abas */}
+        {/* Tabs */}
         <div style={{ display: 'flex', gap: '8px', marginBottom: '36px', background: 'rgba(255,255,255,0.02)', borderRadius: '999px', padding: '4px', width: 'fit-content', border: '1px solid rgba(255,255,255,0.05)' }}>
           {[['gerar', t.generateKit], ['historico', t.dnaVisual]].map(([key, label]) => (
             <button key={key} onClick={() => { setAba(key); if (key==='historico') carregarKits() }}
@@ -832,33 +866,29 @@ export default function App() {
         {aba === 'historico' && (
           <div style={{ animation: 'fadeUp 0.5s ease both' }}>
             <h2 style={{ fontSize: '1.4rem', fontWeight: '800', color: '#fff', marginBottom: '24px' }}>{t.dnaVisual}</h2>
-            {meusKits.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '80px 40px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '24px' }}>
-                <p style={{ fontSize: '2.5rem', marginBottom: '12px' }}>🎬</p>
-                <p style={{ color: 'rgba(255,255,255,0.25)' }}>{t.emptyKits}</p>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {meusKits.map((kit, i) => (
-                  <TiltCard key={kit.id} glowColor="#7c3aed" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '18px', padding: '20px 24px', animation: 'fadeUp 0.4s ease both', animationDelay: `${i*0.08}s` }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <div>
-                        <p style={{ fontSize: '0.55rem', letterSpacing: '2px', color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', marginBottom: '6px' }}>{kit.formato}</p>
-                        <p style={{ fontSize: '1rem', fontWeight: '700', color: '#fff', marginBottom: '4px' }}>{kit.estilo}</p>
-                        <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', fontStyle: 'italic' }}>"{kit.emocao}"</p>
+            {meusKits.length === 0
+              ? <div style={{ textAlign: 'center', padding: '80px 40px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '24px' }}><p style={{ fontSize: '2.5rem' }}>🎬</p><p style={{ color: 'rgba(255,255,255,0.25)' }}>{t.emptyKits}</p></div>
+              : <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {meusKits.map((kit, i) => (
+                    <TiltCard key={kit.id} glowColor="#7c3aed" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '18px', padding: '20px 24px', animation: 'fadeUp 0.4s ease both', animationDelay: `${i*0.08}s` }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div>
+                          <p style={{ fontSize: '0.55rem', letterSpacing: '2px', color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', marginBottom: '6px' }}>{kit.formato}</p>
+                          <p style={{ fontSize: '1rem', fontWeight: '700', color: '#fff', marginBottom: '4px' }}>{kit.estilo}</p>
+                          <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', fontStyle: 'italic' }}>"{kit.emocao}"</p>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
+                          <p style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.2)' }}>{new Date(kit.criado_em).toLocaleDateString()}</p>
+                          <button onClick={() => compartilharKit(kit.id)} disabled={sharingId===kit.id}
+                            style={{ padding: '6px 14px', borderRadius: '999px', border: '1px solid rgba(124,58,237,0.4)', background: kit.share_id ? 'rgba(124,58,237,0.2)' : 'transparent', color: kit.share_id ? '#a78bfa' : 'rgba(255,255,255,0.4)', fontSize: '0.7rem', cursor: 'pointer', fontWeight: '600' }}>
+                            {sharingId===kit.id ? '...' : kit.share_id ? '🔗 Compartilhado' : '↗ Compartilhar'}
+                          </button>
+                        </div>
                       </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
-                        <p style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.2)' }}>{new Date(kit.criado_em).toLocaleDateString()}</p>
-                        <button onClick={() => compartilharKit(kit.id)} disabled={sharingId === kit.id}
-                          style={{ padding: '6px 14px', borderRadius: '999px', border: '1px solid rgba(124,58,237,0.4)', background: kit.share_id ? 'rgba(124,58,237,0.2)' : 'transparent', color: kit.share_id ? '#a78bfa' : 'rgba(255,255,255,0.4)', fontSize: '0.7rem', cursor: 'pointer', fontWeight: '600' }}>
-                          {sharingId === kit.id ? '...' : kit.share_id ? '🔗 Compartilhado' : '↗ Compartilhar'}
-                        </button>
-                      </div>
-                    </div>
-                  </TiltCard>
-                ))}
-              </div>
-            )}
+                    </TiltCard>
+                  ))}
+                </div>
+            }
           </div>
         )}
 
@@ -866,13 +896,13 @@ export default function App() {
         {aba === 'gerar' && (
           <div style={{ animation: 'fadeUp 0.5s ease both' }}>
 
-            {/* Templates sugeridos */}
-            <div style={{ marginBottom: '24px' }}>
-              <p style={{ fontSize: '0.6rem', letterSpacing: '3px', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', marginBottom: '12px' }}>⚡ Começar com um estilo</p>
+            {/* Templates */}
+            <div style={{ marginBottom: '20px' }}>
+              <p style={{ fontSize: '0.6rem', letterSpacing: '3px', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', marginBottom: '10px' }}>⚡ Começar com um estilo</p>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 {TEMPLATES.map((tpl, i) => (
                   <button key={i} onClick={() => setEmocao(tpl.prompt)}
-                    style={{ padding: '7px 14px', borderRadius: '999px', border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)', color: 'rgba(255,255,255,0.5)', fontSize: '0.75rem', cursor: 'pointer', transition: 'all 0.2s' }}
+                    style={{ padding: '7px 14px', borderRadius: '999px', border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)', color: 'rgba(255,255,255,0.5)', fontSize: '0.75rem', cursor: 'pointer' }}
                     onMouseEnter={e => { e.currentTarget.style.borderColor = active ? active.glow+'66' : 'rgba(124,58,237,0.5)'; e.currentTarget.style.color = '#fff' }}
                     onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'rgba(255,255,255,0.5)' }}
                   >{tpl.label}</button>
@@ -882,7 +912,7 @@ export default function App() {
 
             {/* Formato */}
             <div style={{ marginBottom: '24px' }}>
-              <p style={{ fontSize: '0.6rem', letterSpacing: '3px', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', marginBottom: '12px' }}>{t.format}</p>
+              <p style={{ fontSize: '0.6rem', letterSpacing: '3px', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', marginBottom: '10px' }}>{t.format}</p>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 {Object.entries(FORMATOS).map(([key, fmt]) => (
                   <button key={key} onClick={() => setFormato(key)}
@@ -893,32 +923,28 @@ export default function App() {
               </div>
             </div>
 
-            {/* Pré-visualização em tempo real */}
+            {/* === MINIPLAYER + BUILD PANEL === */}
             {active && (
-              <TiltCard glowColor={active.glow} style={{ marginBottom: '24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', padding: '32px', background: 'rgba(0,0,0,0.5)', borderRadius: '28px', border: `1px solid ${active.glow}22`, backdropFilter: 'blur(20px)', animation: 'tiltIn 0.5s ease both' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+              <TiltCard glowColor={active.glow} style={{ marginBottom: '24px', padding: '28px', background: 'rgba(0,0,0,0.5)', borderRadius: '28px', border: `1px solid ${active.glow}22`, backdropFilter: 'blur(20px)', animation: 'tiltIn 0.5s ease both' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px' }}>
                   <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#e94560', animation: 'glowPulse 1s infinite' }} />
                   <p style={{ fontSize: '0.55rem', letterSpacing: '3px', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase' }}>Pré-visualização ao vivo · {active.nome}</p>
                 </div>
-                <CinematicPreview preset={active} formato={formato} />
-                <p style={{ fontSize: '0.65rem', color: active.glow, fontWeight: '700', letterSpacing: '1px' }}>{active.emocao}</p>
+                <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                  {/* Canvas do miniplayer */}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                    <CinematicMiniPlayer preset={active} formato={formato} />
+                    <p style={{ fontSize: '0.65rem', color: active.glow, fontWeight: '700', letterSpacing: '1px', textAlign: 'center' }}>{active.emocao}</p>
+                  </div>
+                  {/* Painel de build lateral */}
+                  <BuildPanel preset={active} active={true} />
+                </div>
               </TiltCard>
             )}
 
-            {/* Variações detectadas */}
-            {emocao.length > 3 && (
-              <VariacoesKit emocao={emocao} formato={formato} glow={active?.glow || '#7c3aed'}
-                onSelecionar={(p) => {
-                  setPreview(p)
-                  setEmocao(p.keywords[0])
-                }}
-              />
-            )}
-
             {/* Textarea */}
-            <textarea value={emocao} onChange={e => setEmocao(e.target.value)}
-              placeholder={t.placeholder}
-              style={{ width: '100%', height: '110px', background: 'rgba(255,255,255,0.02)', color: '#fff', border: `1px solid ${active ? active.glow+'44' : 'rgba(124,58,237,0.2)'}`, borderRadius: '20px', padding: '20px 24px', fontSize: '0.95rem', resize: 'none', boxSizing: 'border-box', outline: 'none', lineHeight: 1.6, backdropFilter: 'blur(10px)', transition: 'border 0.5s ease', boxShadow: active ? `0 0 30px ${active.glow}11` : 'none' }}
+            <textarea value={emocao} onChange={e => setEmocao(e.target.value)} placeholder={t.placeholder}
+              style={{ width: '100%', height: '110px', background: 'rgba(255,255,255,0.02)', color: '#fff', border: `1px solid ${active ? active.glow+'44' : 'rgba(124,58,237,0.2)'}`, borderRadius: '20px', padding: '20px 24px', fontSize: '0.95rem', resize: 'none', boxSizing: 'border-box', outline: 'none', lineHeight: 1.6, backdropFilter: 'blur(10px)', transition: 'border 0.5s ease' }}
             />
 
             {/* Botões */}
@@ -938,7 +964,7 @@ export default function App() {
             {/* Resultado */}
             {resultado && (
               <div style={{ marginTop: '48px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <TiltCard glowColor={resultado.glow} style={{ textAlign: 'center', padding: '28px', background: `${resultado.glow}0e`, border: `1px solid ${resultado.glow}33`, borderRadius: '24px', animation: 'tiltIn 0.6s ease both' }}>
+                <TiltCard glowColor={resultado.glow} style={{ textAlign: 'center', padding: '28px', background: `${resultado.glow}0e`, border: `1px solid ${resultado.glow}33`, borderRadius: '24px' }}>
                   <p style={{ fontSize: '0.55rem', letterSpacing: '3px', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', marginBottom: '8px' }}>{t.detectedStyle}</p>
                   <p style={{ fontSize: '1.4rem', fontWeight: '900', color: resultado.glow, marginBottom: '6px', textShadow: `0 0 30px ${resultado.glow}` }}>{resultado.nome}</p>
                   <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.35)', marginBottom: '16px' }}>{resultado.emocao}</p>
@@ -948,11 +974,6 @@ export default function App() {
                       {sharingId===kitId ? '...' : shareUrl ? '✓ Link gerado!' : '↗ Compartilhar este kit'}
                     </button>
                   )}
-                </TiltCard>
-
-                {/* Feedback emocional */}
-                <TiltCard glowColor={resultado.glow} style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${resultado.glow}18`, borderRadius: '24px' }}>
-                  <FeedbackEmocional glow={resultado.glow} kitId={kitId} token={user.token} />
                 </TiltCard>
 
                 <TiltCard glowColor={resultado.glow} style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${resultado.glow}18`, borderRadius: '24px', padding: '24px' }}>
@@ -1019,3 +1040,5 @@ export default function App() {
     </div>
   )
 }
+ENDOFFILE
+echo "done"
