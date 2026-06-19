@@ -3,8 +3,9 @@ from jose import JWTError, jwt
 from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
 import hashlib
+import os
 
-SECRET_KEY = "kit-intencao-visual-secret-2026"
+SECRET_KEY = os.environ.get("JWT_SECRET", "kit-intencao-visual-secret-2026")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7
 
