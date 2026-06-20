@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import * as Tone from 'tone'
 import { useT, detectLang } from './i18n'
 import MiniPlayer3D from './MiniPlayer3D'
+import ExportCard from './ExportCard'
 
 const API = 'https://intencao-visual-production.up.railway.app'
 
@@ -549,6 +550,7 @@ export default function App() {
   const [shareUrl, setShareUrl] = useState(null)
   const [sharingId, setSharingId] = useState(null)
   const debounceRef = useRef(null)
+  const miniplayerRef = useRef(null)
 
   const path = window.location.pathname
   const shareMatch = path.match(/^\/kit\/([a-zA-Z0-9]+)$/)
@@ -725,7 +727,9 @@ export default function App() {
                   <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#e94560', animation: 'glowPulse 1s infinite' }} />
                   <p style={{ fontSize: '0.55rem', letterSpacing: '3px', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase' }}>Pré-visualização ao vivo · {active.nome}</p>
                 </div>
-                <MiniPlayer3D preset={active} formato={formato} prompt={emocao} />
+                <div ref={miniplayerRef}>
+                  <MiniPlayer3D preset={active} formato={formato} prompt={emocao} />
+                </div>
                 <p style={{ fontSize: '0.65rem', color: active.glow, fontWeight: '700', letterSpacing: '1px' }}>{active.emocao}</p>
               </TiltCard>
             )}
@@ -778,6 +782,12 @@ export default function App() {
                 {/* Feedback emocional */}
                 <TiltCard glowColor={resultado.glow} style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${resultado.glow}18`, borderRadius: '24px' }}>
                   <FeedbackEmocional glow={resultado.glow} kitId={kitId} token={user.token} />
+                </TiltCard>
+
+                {/* Export Card */}
+                <TiltCard glowColor={resultado.glow} style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${resultado.glow}28`, borderRadius: '24px', padding: '24px' }}>
+                  <p style={{ fontSize: '0.55rem', letterSpacing: '3px', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', marginBottom: '16px' }}>🎬 Exportar para redes sociais</p>
+                  <ExportCard preset={resultado} formato={formato} miniplayerRef={miniplayerRef} />
                 </TiltCard>
 
                 <TiltCard glowColor={resultado.glow} style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${resultado.glow}18`, borderRadius: '24px', padding: '24px' }}>
