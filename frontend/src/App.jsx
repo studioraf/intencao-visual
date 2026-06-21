@@ -138,6 +138,191 @@ function GlitchText({ text, style }) {
 
 // ── Pré-visualização interativa em tempo real ─────────────────────────────────
 
+// ── Base de neurocinematografia por preset ────────────────────────────────────
+const NEURO_DATA = {
+  'Cyberpunk': {
+    cerebro: 'Córtex pré-frontal + Amígdala',
+    reacao: 'Hipervigilância e desorientação controlada',
+    gatilho: 'Luz estroboscópica e cortes rápidos ativam o sistema de alerta primitivo',
+    janela: '0–2s',
+    retencao: '89%',
+    hormonio: 'Adrenalina + Cortisol',
+    tecnica: 'Sobrecarga sensorial calibrada — o espectador não consegue desviar os olhos',
+  },
+  'Luxo Cinematográfico': {
+    cerebro: 'Núcleo Accumbens + Córtex Orbito-frontal',
+    reacao: 'Ativação do circuito de recompensa e status social',
+    gatilho: 'Ângulo baixo + luz dourada ativam percepção de hierarquia e poder',
+    janela: '0–3s',
+    retencao: '94%',
+    hormonio: 'Dopamina + Testosterona',
+    tecnica: 'Sinalização de prestígio — o cérebro interpreta automaticamente como objeto de desejo',
+  },
+  'Romance Etéreo': {
+    cerebro: 'Hipotálamo + Ínsula',
+    reacao: 'Liberação de oxitocina e empatia visceral',
+    gatilho: 'Bokeh profundo e ritmo lento sincronizam com estado de conexão emocional',
+    janela: '3–8s',
+    retencao: '91%',
+    hormonio: 'Oxitocina + Serotonina',
+    tecnica: 'Espelhamento emocional — o espectador sente o que o personagem sente',
+  },
+  'Noir Contemporâneo': {
+    cerebro: 'Amígdala + Hipocampo',
+    reacao: 'Antecipação ansiosa e fascinação pelo perigo',
+    gatilho: 'Sombra absoluta ativa instinto de vigilância — o invisível é mais aterrorizante que o visível',
+    janela: '1–4s',
+    retencao: '87%',
+    hormonio: 'Cortisol + Norepinefrina',
+    tecnica: 'Tensão por ausência — o que não é mostrado cria mais suspense que o que é',
+  },
+  'Épico Cinematográfico': {
+    cerebro: 'Córtex Pré-frontal Medial + Cerebelo',
+    reacao: 'Senso de grandiosidade e pertencimento a algo maior',
+    gatilho: 'Grande angular + orquestra ativam resposta de admiração (awe response)',
+    janela: '2–5s',
+    retencao: '96%',
+    hormonio: 'Adrenalina + Dopamina',
+    tecnica: 'Escala humana vs. cosmos — o espectador sente a própria pequenez de forma prazerosa',
+  },
+  'Minimalismo Moderno': {
+    cerebro: 'Córtex Pré-frontal Dorsolateral',
+    reacao: 'Redução de carga cognitiva e confiança aumentada',
+    gatilho: 'Espaço negativo libera recursos cognitivos, o cérebro interpreta como competência e controle',
+    janela: '0–1s',
+    retencao: '82%',
+    hormonio: 'Serotonina',
+    tecnica: 'Princípio da fluência — quanto mais fácil de processar, mais confiável parece',
+  },
+}
+
+function getNeuroPorNome(nome) {
+  return NEURO_DATA[nome] || {
+    cerebro: 'Sistema Límbico + Córtex Visual',
+    reacao: 'Resposta emocional calibrada ao estilo',
+    gatilho: 'Combinação de cor, ritmo e composição ativa resposta emocional específica',
+    janela: '1–4s',
+    retencao: '85%',
+    hormonio: 'Dopamina',
+    tecnica: 'Linguagem visual neurológica — cada elemento foi escolhido para ativar uma emoção específica',
+  }
+}
+
+// ── Aha Momento #2 — Efeito Psicológico ───────────────────────────────────────
+function EfeitoPsicologico({ preset, glow }) {
+  const [visivel, setVisivel] = useState(false)
+  const [digitando, setDigitando] = useState(true)
+  const neuro = getNeuroPorNome(preset.nome)
+
+  // Simula "digitação" do texto para criar suspense
+  const textoCompleto = neuro.tecnica
+  const [textoAtual, setTextoAtual] = useState('')
+  useEffect(() => {
+    setVisivel(false)
+    setDigitando(true)
+    setTextoAtual('')
+    const timer = setTimeout(() => setVisivel(true), 200)
+    return () => clearTimeout(timer)
+  }, [preset.nome])
+
+  useEffect(() => {
+    if (!visivel) return
+    let i = 0
+    const interval = setInterval(() => {
+      if (i <= textoCompleto.length) {
+        setTextoAtual(textoCompleto.slice(0, i))
+        i++
+      } else {
+        setDigitando(false)
+        clearInterval(interval)
+      }
+    }, 18)
+    return () => clearInterval(interval)
+  }, [visivel, textoCompleto])
+
+  if (!visivel) return null
+
+  return (
+    <div style={{ animation: 'fadeUp 0.6s ease both' }}>
+      {/* Header impactante */}
+      <div style={{ textAlign: 'center', padding: '28px 24px 20px', borderBottom: `1px solid ${glow}18` }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: `${glow}12`, border: `1px solid ${glow}44`, borderRadius: '999px', padding: '5px 16px', marginBottom: '16px' }}>
+          <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: glow, animation: 'glowPulse 1.5s infinite' }} />
+          <span style={{ fontSize: '0.6rem', letterSpacing: '2px', color: glow, textTransform: 'uppercase', fontWeight: '700' }}>Análise Neurocinematográfica</span>
+        </div>
+        <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.55)', lineHeight: 1.6, fontStyle: 'italic' }}>
+          "{textoAtual}<span style={{ opacity: digitando ? 1 : 0, color: glow }}>|</span>"
+        </p>
+      </div>
+
+      {/* Grid de dados neurológicos */}
+      <div style={{ padding: '20px 24px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+        {[
+          { icon: '🧠', label: 'Área Ativada', valor: neuro.cerebro },
+          { icon: '⚡', label: 'Reação', valor: neuro.reacao },
+          { icon: '🧪', label: 'Hormônio', valor: neuro.hormonio },
+          { icon: '⏱', label: 'Janela de Impacto', valor: neuro.janela },
+        ].map(item => (
+          <div key={item.label} style={{ background: `${glow}08`, border: `1px solid ${glow}18`, borderRadius: '14px', padding: '14px' }}>
+            <p style={{ fontSize: '0.55rem', letterSpacing: '2px', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', marginBottom: '6px' }}>{item.icon} {item.label}</p>
+            <p style={{ fontSize: '0.78rem', color: '#e2e8f0', fontWeight: '600', lineHeight: 1.3 }}>{item.valor}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Barra de retenção */}
+      <div style={{ padding: '0 24px 20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+          <p style={{ fontSize: '0.6rem', letterSpacing: '2px', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase' }}>📊 Taxa de Retenção de Atenção</p>
+          <p style={{ fontSize: '0.9rem', fontWeight: '900', color: glow }}>{neuro.retencao}</p>
+        </div>
+        <div style={{ height: '4px', background: 'rgba(255,255,255,0.06)', borderRadius: '999px', overflow: 'hidden' }}>
+          <div style={{ height: '100%', width: neuro.retencao, background: `linear-gradient(90deg, ${glow}, #e94560)`, borderRadius: '999px', boxShadow: `0 0 12px ${glow}88`, transition: 'width 1.5s ease' }} />
+        </div>
+      </div>
+
+      {/* Gatilho */}
+      <div style={{ margin: '0 24px 24px', padding: '14px 18px', background: `${glow}0a`, border: `1px solid ${glow}22`, borderRadius: '14px' }}>
+        <p style={{ fontSize: '0.55rem', letterSpacing: '2px', color: glow, textTransform: 'uppercase', marginBottom: '6px', fontWeight: '700' }}>🎯 Gatilho Principal</p>
+        <p style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>{neuro.gatilho}</p>
+      </div>
+    </div>
+  )
+}
+
+// ── Aha Momento #1 — Contador de palavras-chave detectadas ────────────────────
+function ContadorDeteccao({ emocao, preset, glow }) {
+  const [palavrasDetectadas, setPalavrasDetectadas] = useState([])
+  const [animando, setAnimando] = useState(false)
+
+  useEffect(() => {
+    if (!emocao || emocao.length < 3 || !preset) { setPalavrasDetectadas([]); return }
+    const lower = emocao.toLowerCase()
+    const detectadas = preset.keywords.filter(k => lower.includes(k))
+    if (detectadas.length !== palavrasDetectadas.length) {
+      setAnimando(true)
+      setPalavrasDetectadas(detectadas)
+      setTimeout(() => setAnimando(false), 600)
+    }
+  }, [emocao, preset])
+
+  if (!preset || palavrasDetectadas.length === 0) return null
+
+  return (
+    <div style={{ marginBottom: '16px', animation: animando ? 'fadeUp 0.4s ease both' : 'none' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+        <span style={{ fontSize: '0.55rem', letterSpacing: '2px', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase' }}>🧬 Sinal detectado:</span>
+        {palavrasDetectadas.map((p, i) => (
+          <span key={i} style={{ padding: '3px 10px', borderRadius: '999px', background: `${glow}18`, border: `1px solid ${glow}44`, color: glow, fontSize: '0.7rem', fontWeight: '700', animation: 'fadeUp 0.3s ease both', animationDelay: `${i * 0.08}s` }}>
+            {p}
+          </span>
+        ))}
+        <span style={{ fontSize: '0.65rem', color: glow, fontWeight: '700' }}>→ {preset.nome}</span>
+      </div>
+    </div>
+  )
+}
+
 // ── Templates sugeridos ────────────────────────────────────────────────────────
 const TEMPLATES = [
   { label: '⚡ Trap luxuoso', prompt: 'clipe estilo trap luxo cartier poder status', preset: 'poder' },
@@ -744,6 +929,9 @@ export default function App() {
               />
             )}
 
+            {/* Aha #1 — Contador de detecção em tempo real */}
+            <ContadorDeteccao emocao={emocao} preset={active} glow={active?.glow || '#7c3aed'} />
+
             {/* Textarea */}
             <textarea value={emocao} onChange={e => setEmocao(e.target.value)}
               placeholder={t.placeholder}
@@ -777,6 +965,11 @@ export default function App() {
                       {sharingId===kitId ? '...' : shareUrl ? '✓ Link gerado!' : '↗ Compartilhar este kit'}
                     </button>
                   )}
+                </TiltCard>
+
+                {/* Aha #2 — Efeito Psicológico */}
+                <TiltCard glowColor={resultado.glow} style={{ background: `linear-gradient(135deg, rgba(0,0,0,0.6), ${resultado.glow}08)`, border: `1px solid ${resultado.glow}33`, borderRadius: '24px', overflow: 'hidden' }}>
+                  <EfeitoPsicologico preset={resultado} glow={resultado.glow} />
                 </TiltCard>
 
                 {/* Feedback emocional */}
