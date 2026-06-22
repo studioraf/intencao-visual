@@ -92,6 +92,8 @@ function OrbField() {
         @keyframes tiltIn { from{opacity:0;transform:perspective(800px) rotateX(20deg) translateY(40px)} to{opacity:1;transform:perspective(800px) rotateX(0deg) translateY(0)} }
         @keyframes glowPulse { 0%,100%{opacity:0.5} 50%{opacity:1} }
         @keyframes glitchA { 0%,94%,100%{opacity:0;transform:none} 95%{opacity:0.8;transform:translateX(-3px) skewX(-5deg)} 97%{opacity:0.6;transform:translateX(3px) skewX(3deg)} 99%{opacity:0;transform:none} }
+        @keyframes barGrow { from{width:0%} to{width:var(--w)} }
+        @keyframes typeIn { from{opacity:0} to{opacity:1} }
       `}</style>
     </div>
   )
@@ -129,13 +131,19 @@ function GlitchText({ text, style }) {
   )
 }
 
+// ══════════════════════════════════════════════════════════════════════
+// AHA #2 — ANÁLISE NEUROCINEMATOGRÁFICA
+// ══════════════════════════════════════════════════════════════════════
 const NEURO_DATA = {
   'Cyberpunk': { cerebro: 'Córtex pré-frontal + Amígdala', reacao: 'Hipervigilância e desorientação controlada', gatilho: 'Luz estroboscópica e cortes rápidos ativam o sistema de alerta primitivo', janela: '0–2s', retencao: '89%', hormonio: 'Adrenalina + Cortisol', tecnica: 'Sobrecarga sensorial calibrada — o espectador não consegue desviar os olhos' },
   'Luxo Cinematográfico': { cerebro: 'Núcleo Accumbens + Córtex Orbito-frontal', reacao: 'Ativação do circuito de recompensa e status social', gatilho: 'Ângulo baixo + luz dourada ativam percepção de hierarquia e poder', janela: '0–3s', retencao: '94%', hormonio: 'Dopamina + Testosterona', tecnica: 'Sinalização de prestígio — o cérebro interpreta automaticamente como objeto de desejo' },
   'Romance Etéreo': { cerebro: 'Hipotálamo + Ínsula', reacao: 'Liberação de oxitocina e empatia visceral', gatilho: 'Bokeh profundo e ritmo lento sincronizam com estado de conexão emocional', janela: '3–8s', retencao: '91%', hormonio: 'Oxitocina + Serotonina', tecnica: 'Espelhamento emocional — o espectador sente o que o personagem sente' },
-  'Noir Contemporâneo': { cerebro: 'Amígdala + Hipocampo', reacao: 'Antecipação ansiosa e fascinação pelo perigo', gatilho: 'Sombra absoluta ativa instinto de vigilância — o invisível é mais aterrorizante que o visível', janela: '1–4s', retencao: '87%', hormonio: 'Cortisol + Norepinefrina', tecnica: 'Tensão por ausência — o que não é mostrado cria mais suspense que o que é' },
+  'Noir Contemporâneo': { cerebro: 'Amígdala + Hipocampo', reacao: 'Antecipação ansiosa e fascinação pelo perigo', gatilho: 'Sombra absoluta ativa instinto de vigilância — o invisível é mais aterrorizante', janela: '1–4s', retencao: '87%', hormonio: 'Cortisol + Norepinefrina', tecnica: 'Tensão por ausência — o que não é mostrado cria mais suspense' },
   'Épico Cinematográfico': { cerebro: 'Córtex Pré-frontal Medial + Cerebelo', reacao: 'Senso de grandiosidade e pertencimento a algo maior', gatilho: 'Grande angular + orquestra ativam resposta de admiração (awe response)', janela: '2–5s', retencao: '96%', hormonio: 'Adrenalina + Dopamina', tecnica: 'Escala humana vs. cosmos — o espectador sente a própria pequenez de forma prazerosa' },
-  'Minimalismo Moderno': { cerebro: 'Córtex Pré-frontal Dorsolateral', reacao: 'Redução de carga cognitiva e confiança aumentada', gatilho: 'Espaço negativo libera recursos cognitivos, o cérebro interpreta como competência e controle', janela: '0–1s', retencao: '82%', hormonio: 'Serotonina', tecnica: 'Princípio da fluência — quanto mais fácil de processar, mais confiável parece' },
+  'Minimalismo Moderno': { cerebro: 'Córtex Pré-frontal Dorsolateral', reacao: 'Redução de carga cognitiva e confiança aumentada', gatilho: 'Espaço negativo libera recursos cognitivos, interpretado como competência', janela: '0–1s', retencao: '82%', hormonio: 'Serotonina', tecnica: 'Princípio da fluência — quanto mais fácil de processar, mais confiável parece' },
+  'Melancolia Urbana': { cerebro: 'Córtex Cingulado Anterior', reacao: 'Ativação de memória emocional e introspecção profunda', gatilho: 'Chuva + luz fria ativam circuito de saudade e contemplação', janela: '3–6s', retencao: '85%', hormonio: 'Serotonina baixa + Endorfina', tecnica: 'Beleza na dor — o cérebro processa tristeza estética como prazer' },
+  'Euforia Coletiva': { cerebro: 'Estriado Ventral + Córtex Motor', reacao: 'Sincronização de movimento e liberação de dopamina em massa', gatilho: 'Bass drop + estrobo ativam resposta de dança involuntária', janela: '0–1s', retencao: '93%', hormonio: 'Dopamina + Endorfina + Serotonina', tecnica: 'Contágio emocional — o cérebro espelha a euforia da multidão' },
+  'Natureza Visceral': { cerebro: 'Córtex Insular + Sistema Nervoso Parassimpático', reacao: 'Ativação do modo de restauração e paz profunda', gatilho: 'Sons naturais + verde reduzem cortisol em 68% em 5 minutos', janela: '5–10s', retencao: '78%', hormonio: 'Cortisol baixo + Serotonina', tecnica: 'Conexão ancestral — o cérebro reconhece natureza como ambiente seguro' },
 }
 
 function getNeuroPorNome(nome) {
@@ -192,7 +200,7 @@ function EfeitoPsicologico({ preset, glow }) {
           <p style={{ fontSize: '0.9rem', fontWeight: '900', color: glow }}>{neuro.retencao}</p>
         </div>
         <div style={{ height: '4px', background: 'rgba(255,255,255,0.06)', borderRadius: '999px', overflow: 'hidden' }}>
-          <div style={{ height: '100%', width: neuro.retencao, background: `linear-gradient(90deg, ${glow}, #e94560)`, borderRadius: '999px', boxShadow: `0 0 12px ${glow}88`, transition: 'width 1.5s ease' }} />
+          <div style={{ height: '100%', width: neuro.retencao, background: `linear-gradient(90deg, ${glow}, #e94560)`, borderRadius: '999px', transition: 'width 1.5s ease' }} />
         </div>
       </div>
       <div style={{ margin: '0 24px 24px', padding: '14px 18px', background: `${glow}0a`, border: `1px solid ${glow}22`, borderRadius: '14px' }}>
@@ -203,35 +211,244 @@ function EfeitoPsicologico({ preset, glow }) {
   )
 }
 
-function ContadorDeteccao({ emocao, preset, glow }) {
-  const [palavrasDetectadas, setPalavrasDetectadas] = useState([])
-  const [animando, setAnimando] = useState(false)
+// ══════════════════════════════════════════════════════════════════════
+// AHA #3 — SIMULADOR DE RETENÇÃO COMPARATIVA (benchmarking)
+// ══════════════════════════════════════════════════════════════════════
+const BENCHMARKS = {
+  'Cyberpunk': { refs: [{ nome: 'Blade Runner 2049', score: 96, cor: '#00fff7' }, { nome: 'Cyberpunk 2077 Trailer', score: 94, cor: '#7c3aed' }, { nome: 'Daft Punk — Derezzed', score: 91, cor: '#ff006e' }, { nome: 'Média da categoria', score: 67, cor: '#333' }], frase: 'Seu kit está no nível dos maiores trailers cyberpunk da história' },
+  'Luxo Cinematográfico': { refs: [{ nome: 'Apple — Shot on iPhone', score: 97, cor: '#C8860A' }, { nome: 'Cartier — L\'Odyssée', score: 95, cor: '#F5D78E' }, { nome: 'Rolls-Royce Campaign', score: 93, cor: '#8B3A00' }, { nome: 'Média da categoria', score: 61, cor: '#333' }], frase: 'Padrão de ativação de dopamina equivalente aos maiores luxos do mundo' },
+  'Romance Etéreo': { refs: [{ nome: 'La La Land', score: 98, cor: '#FF6B9D' }, { nome: 'Coldplay — Yellow MV', score: 94, cor: '#FFD6E8' }, { nome: 'Chanel N°5 Ad', score: 91, cor: '#8B0050' }, { nome: 'Média da categoria', score: 58, cor: '#333' }], frase: 'Nível de oxitocina gerado comparável aos maiores filmes românticos' },
+  'Noir Contemporâneo': { refs: [{ nome: 'Se7en — Opening', score: 97, cor: '#4a4a6a' }, { nome: 'True Detective S1', score: 95, cor: '#6a6aaa' }, { nome: 'Joker — Trailer', score: 93, cor: '#1a1a2e' }, { nome: 'Média da categoria', score: 62, cor: '#333' }], frase: 'Tensão psicológica no nível dos maiores thrillers cinematográficos' },
+  'Épico Cinematográfico': { refs: [{ nome: 'Dune — Trailer Oficial', score: 98, cor: '#DAA520' }, { nome: 'Marvel — Avengers', score: 96, cor: '#8B4513' }, { nome: 'Hans Zimmer — Interstellar', score: 97, cor: '#3d1a00' }, { nome: 'Média da categoria', score: 64, cor: '#333' }], frase: 'Resposta de grandiosidade equivalente às maiores produções épicas' },
+  'Minimalismo Moderno': { refs: [{ nome: 'Apple — Think Different', score: 99, cor: '#999' }, { nome: 'Nike — Just Do It', score: 97, cor: '#555' }, { nome: 'Tesla — Product Launch', score: 94, cor: '#777' }, { nome: 'Média da categoria', score: 55, cor: '#333' }], frase: 'Clareza cognitiva no nível das campanhas mais icônicas do mundo' },
+}
+
+function getBenchmarkPorNome(nome) {
+  return BENCHMARKS[nome] || { refs: [{ nome: 'Top 1% do nicho', score: 95, cor: '#7c3aed' }, { nome: 'Top 10% do nicho', score: 82, cor: '#a78bfa' }, { nome: 'Média da categoria', score: 60, cor: '#333' }], frase: 'Kit calibrado para performance acima da média do seu nicho' }
+}
+
+function SimuladorComparativo({ preset, glow }) {
+  const [animado, setAnimado] = useState(false)
+  const bench = getBenchmarkPorNome(preset.nome)
+  const seuScore = preset.bpm > 120 ? 91 : preset.bpm > 90 ? 88 : 85
 
   useEffect(() => {
-    if (!emocao || emocao.length < 3 || !preset) { setPalavrasDetectadas([]); return }
-    const lower = emocao.toLowerCase()
-    const detectadas = preset.keywords.filter(k => lower.includes(k))
-    if (detectadas.length !== palavrasDetectadas.length) {
-      setAnimando(true)
-      setPalavrasDetectadas(detectadas)
-      setTimeout(() => setAnimando(false), 600)
-    }
-  }, [emocao, preset])
-
-  if (!preset || palavrasDetectadas.length === 0) return null
+    const t = setTimeout(() => setAnimado(true), 400)
+    return () => clearTimeout(t)
+  }, [preset.nome])
 
   return (
-    <div style={{ marginBottom: '16px', animation: animando ? 'fadeUp 0.4s ease both' : 'none' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-        <span style={{ fontSize: '0.55rem', letterSpacing: '2px', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase' }}>🧬 Sinal detectado:</span>
-        {palavrasDetectadas.map((p, i) => (
-          <span key={i} style={{ padding: '3px 10px', borderRadius: '999px', background: `${glow}18`, border: `1px solid ${glow}44`, color: glow, fontSize: '0.7rem', fontWeight: '700', animation: 'fadeUp 0.3s ease both', animationDelay: `${i * 0.08}s` }}>{p}</span>
+    <div style={{ padding: '24px' }}>
+      <p style={{ fontSize: '0.6rem', letterSpacing: '3px', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', marginBottom: '8px' }}>📊 Benchmarking Psicológico</p>
+      <p style={{ fontSize: '0.75rem', color: glow, fontWeight: '700', marginBottom: '20px', fontStyle: 'italic' }}>"{bench.frase}"</p>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+            <span style={{ fontSize: '0.7rem', color: '#fff', fontWeight: '800' }}>✦ Seu Kit Atual</span>
+            <span style={{ fontSize: '0.7rem', color: glow, fontWeight: '800' }}>{seuScore}%</span>
+          </div>
+          <div style={{ height: '8px', background: 'rgba(255,255,255,0.06)', borderRadius: '999px', overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: animado ? `${seuScore}%` : '0%', background: `linear-gradient(90deg, ${glow}, #e94560)`, borderRadius: '999px', boxShadow: `0 0 12px ${glow}88`, transition: 'width 1.2s cubic-bezier(0.4,0,0.2,1)' }} />
+          </div>
+        </div>
+        {bench.refs.map((ref, i) => (
+          <div key={i}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+              <span style={{ fontSize: '0.65rem', color: i === bench.refs.length - 1 ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.6)' }}>{ref.nome}</span>
+              <span style={{ fontSize: '0.65rem', color: i === bench.refs.length - 1 ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.5)' }}>{ref.score}%</span>
+            </div>
+            <div style={{ height: '5px', background: 'rgba(255,255,255,0.04)', borderRadius: '999px', overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: animado ? `${ref.score}%` : '0%', background: ref.cor, borderRadius: '999px', transition: `width ${1 + i * 0.15}s cubic-bezier(0.4,0,0.2,1)` }} />
+            </div>
+          </div>
         ))}
-        <span style={{ fontSize: '0.65rem', color: glow, fontWeight: '700' }}>→ {preset.nome}</span>
+      </div>
+
+      <div style={{ textAlign: 'center', padding: '14px', background: `${glow}0a`, border: `1px solid ${glow}22`, borderRadius: '14px' }}>
+        <p style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', marginBottom: '4px' }}>Seu kit está</p>
+        <p style={{ fontSize: '1.1rem', fontWeight: '900', color: glow }}>
+          {seuScore >= 90 ? 'no Top 10% do planeta 🌍' : seuScore >= 80 ? 'acima de 80% dos criadores' : 'acima da média do mercado'}
+        </p>
+        <p style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.2)', marginTop: '4px' }}>Baseado em padrões de retenção neurocinematográfica</p>
       </div>
     </div>
   )
 }
+
+// ══════════════════════════════════════════════════════════════════════
+// AHA #4 — INJEÇÃO DE DOPAMINA (otimização de linguagem)
+// ══════════════════════════════════════════════════════════════════════
+const SUGESTOES_OTIMIZACAO = {
+  'Cyberpunk': [{ original: 'mostrar', sugestao: 'revelar', ganho: 23, area: 'Córtex Visual', efeito: 'antecipação' }, { original: 'tentar', sugestao: 'dominar', ganho: 31, area: 'Amígdala', efeito: 'poder' }, { original: 'fazer', sugestao: 'executar', ganho: 18, area: 'Córtex Motor', efeito: 'precisão' }],
+  'Luxo Cinematográfico': [{ original: 'caro', sugestao: 'exclusivo', ganho: 41, area: 'Córtex Orbito-frontal', efeito: 'status' }, { original: 'bom', sugestao: 'impecável', ganho: 35, area: 'Núcleo Accumbens', efeito: 'desejo' }, { original: 'produto', sugestao: 'obra', ganho: 28, area: 'Córtex Pré-frontal', efeito: 'valor percebido' }],
+  'Romance Etéreo': [{ original: 'gostar', sugestao: 'sentir', ganho: 44, area: 'Ínsula', efeito: 'empatia visceral' }, { original: 'ver', sugestao: 'contemplar', ganho: 22, area: 'Hipocampo', efeito: 'memória emocional' }, { original: 'amor', sugestao: 'conexão', ganho: 33, area: 'Hipotálamo', efeito: 'oxitocina' }],
+  'Noir Contemporâneo': [{ original: 'problema', sugestao: 'segredo', ganho: 38, area: 'Amígdala', efeito: 'curiosidade ansiosa' }, { original: 'difícil', sugestao: 'perigoso', ganho: 29, area: 'Sistema de Alerta', efeito: 'vigilância' }, { original: 'falar', sugestao: 'sussurrar', ganho: 45, area: 'Córtex Auditivo', efeito: 'tensão' }],
+  'Épico Cinematográfico': [{ original: 'grande', sugestao: 'colossal', ganho: 36, area: 'Córtex Pré-frontal Medial', efeito: 'grandiosidade' }, { original: 'lutar', sugestao: 'resistir', ganho: 42, area: 'Sistema Límbico', efeito: 'heroísmo' }, { original: 'vitória', sugestao: 'legado', ganho: 51, area: 'Córtex Pré-frontal', efeito: 'imortalidade' }],
+  'Minimalismo Moderno': [{ original: 'simples', sugestao: 'preciso', ganho: 27, area: 'Córtex Pré-frontal Dorsolateral', efeito: 'confiança' }, { original: 'rápido', sugestao: 'instantâneo', ganho: 33, area: 'Gânglios da Base', efeito: 'fluidez' }, { original: 'limpo', sugestao: 'essencial', ganho: 38, area: 'Córtex Pré-frontal', efeito: 'sofisticação' }],
+}
+
+function getSugestoesPorNome(nome) {
+  return SUGESTOES_OTIMIZACAO[nome] || [{ original: 'mostrar', sugestao: 'revelar', ganho: 25, area: 'Córtex Visual', efeito: 'curiosidade' }, { original: 'fazer', sugestao: 'transformar', ganho: 30, area: 'Sistema Límbico', efeito: 'impacto' }]
+}
+
+function InjecaoDopamina({ preset, glow }) {
+  const [aplicados, setAplicados] = useState({})
+  const sugestoes = getSugestoesPorNome(preset.nome)
+  const numAplicados = Object.values(aplicados).filter(Boolean).length
+  const ganhoTotal = numAplicados > 0
+    ? Math.round(sugestoes.filter((_, i) => aplicados[i]).reduce((acc, s) => acc + s.ganho, 0) / numAplicados)
+    : 0
+
+  function toggle(i) { setAplicados(prev => ({ ...prev, [i]: !prev[i] })) }
+
+  return (
+    <div style={{ padding: '24px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+        <span style={{ fontSize: '0.6rem', letterSpacing: '3px', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase' }}>💉 Injeção de Dopamina</span>
+        {ganhoTotal > 0 && (
+          <span style={{ fontSize: '0.7rem', color: glow, fontWeight: '800', animation: 'fadeUp 0.3s ease both' }}>+{ganhoTotal}% ativação</span>
+        )}
+      </div>
+      <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.35)', marginBottom: '16px', lineHeight: 1.5 }}>
+        Clique para aplicar substituições de linguagem calibradas neurologicamente
+      </p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        {sugestoes.map((s, i) => (
+          <div key={i} onClick={() => toggle(i)}
+            style={{ padding: '14px 16px', borderRadius: '16px', border: `1px solid ${aplicados[i] ? glow : 'rgba(255,255,255,0.08)'}`, background: aplicados[i] ? `${glow}12` : 'rgba(255,255,255,0.02)', cursor: 'pointer', transition: 'all 0.3s', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.35)', textDecoration: aplicados[i] ? 'line-through' : 'none' }}>"{s.original}"</span>
+                <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: '0.8rem' }}>→</span>
+                <span style={{ fontSize: '0.75rem', color: aplicados[i] ? glow : '#fff', fontWeight: '700' }}>"{s.sugestao}"</span>
+              </div>
+              <p style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.3)' }}>Ativa {s.area} · +{s.ganho}% {s.efeito}</p>
+            </div>
+            <div style={{ width: '28px', height: '28px', borderRadius: '50%', border: `1px solid ${aplicados[i] ? glow : 'rgba(255,255,255,0.15)'}`, background: aplicados[i] ? glow : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', color: aplicados[i] ? '#000' : 'rgba(255,255,255,0.4)', flexShrink: 0, transition: 'all 0.3s' }}>
+              {aplicados[i] ? '✓' : '+'}
+            </div>
+          </div>
+        ))}
+      </div>
+      {numAplicados > 0 && (
+        <div style={{ marginTop: '14px', padding: '12px 16px', background: `${glow}0a`, border: `1px solid ${glow}22`, borderRadius: '12px', textAlign: 'center', animation: 'fadeUp 0.4s ease both' }}>
+          <p style={{ fontSize: '0.7rem', color: glow, fontWeight: '700' }}>
+            🧬 {numAplicados} otimização(ões) ativa(s) · Impacto neurológico aumentado em +{ganhoTotal}%
+          </p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// AHA #5 — CERTIFICADO DE IMPACTO VIRAL
+// ══════════════════════════════════════════════════════════════════════
+function CertificadoImpacto({ preset, glow, kitId }) {
+  const [gerando, setGerando] = useState(false)
+  const [gerado, setGerado] = useState(false)
+  const neuro = getNeuroPorNome(preset.nome)
+  const score = preset.bpm > 120 ? 94 : preset.bpm > 90 ? 91 : 87
+
+  async function gerarCertificado() {
+    setGerando(true)
+    await new Promise(r => setTimeout(r, 600))
+
+    const canvas = document.createElement('canvas')
+    canvas.width = 1200; canvas.height = 630
+    const ctx = canvas.getContext('2d')
+
+    // Fundo
+    const bg = ctx.createLinearGradient(0, 0, 1200, 630)
+    bg.addColorStop(0, '#050508'); bg.addColorStop(0.5, '#0a0a12'); bg.addColorStop(1, '#050508')
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, 1200, 630)
+
+    // Bordas
+    ctx.strokeStyle = glow + '44'; ctx.lineWidth = 2; ctx.strokeRect(24, 24, 1152, 582)
+    ctx.strokeStyle = glow + '22'; ctx.lineWidth = 1; ctx.strokeRect(32, 32, 1136, 566)
+
+    // Linha de paleta no topo
+    const lineGrad = ctx.createLinearGradient(0, 0, 1200, 0)
+    preset.paleta.forEach((cor, i) => lineGrad.addColorStop(i / (preset.paleta.length - 1), cor))
+    ctx.fillStyle = lineGrad; ctx.fillRect(24, 24, 1152, 4)
+
+    // Logo
+    ctx.fillStyle = glow; ctx.font = 'bold 28px Arial'; ctx.fillText('◈', 80, 100)
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 18px Arial'; ctx.fillText('KIT DE INTENÇÃO VISUAL', 116, 100)
+    ctx.fillStyle = glow + 'aa'; ctx.font = '12px monospace'; ctx.fillText('NEUROCINEMATOGRAFIA', 116, 120)
+
+    // Score central
+    ctx.textAlign = 'center'
+    ctx.fillStyle = glow; ctx.font = 'bold 110px Arial'
+    ctx.shadowBlur = 50; ctx.shadowColor = glow
+    ctx.fillText(`${score}%`, 600, 300)
+    ctx.shadowBlur = 0
+
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 26px Arial'
+    ctx.fillText('ÍNDICE DE ATENÇÃO NEURO-VALIDADA', 600, 350)
+
+    ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.font = '16px Arial'
+    ctx.fillText(`${preset.nome}  ·  ${preset.bpm} BPM  ·  ${preset.ritmo}`, 600, 392)
+    ctx.fillText(`${preset.emocao}`, 600, 420)
+
+    ctx.fillStyle = glow + '88'; ctx.font = '13px monospace'
+    ctx.fillText(`Área: ${neuro.cerebro}  ·  ${neuro.hormonio}`, 600, 458)
+
+    // Paleta
+    preset.paleta.forEach((cor, i) => {
+      const x = 80 + i * 60
+      ctx.fillStyle = cor; ctx.shadowBlur = 14; ctx.shadowColor = cor
+      ctx.beginPath(); ctx.arc(x, 530, 15, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0
+    })
+
+    // Rodapé
+    ctx.textAlign = 'left'; ctx.fillStyle = 'rgba(255,255,255,0.15)'; ctx.font = '12px monospace'
+    ctx.fillText('intencao-visual.vercel.app', 80, 580)
+    ctx.textAlign = 'right'
+    ctx.fillText(`Emitido em ${new Date().toLocaleDateString('pt-BR')} · Kit #${kitId || '—'}`, 1120, 580)
+
+    const link = document.createElement('a')
+    link.download = `certificado-neuro-${preset.nome.toLowerCase().replace(/\s+/g, '-')}.png`
+    link.href = canvas.toDataURL('image/png')
+    link.click()
+
+    setGerando(false); setGerado(true)
+    setTimeout(() => setGerado(false), 4000)
+  }
+
+  return (
+    <div style={{ padding: '24px' }}>
+      <p style={{ fontSize: '0.6rem', letterSpacing: '3px', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', marginBottom: '16px' }}>🏆 Certificado de Impacto Viral</p>
+
+      {/* Preview */}
+      <div style={{ padding: '24px', background: 'rgba(0,0,0,0.5)', border: `2px solid ${glow}33`, borderRadius: '16px', marginBottom: '16px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: `linear-gradient(90deg, ${preset.paleta.join(',')})` }} />
+        <div style={{ fontSize: '0.6rem', color: glow, letterSpacing: '2px', fontWeight: '700', marginBottom: '10px' }}>◈ KIT DE INTENÇÃO VISUAL · NEUROCINEMATOGRAFIA</div>
+        <div style={{ fontSize: '3.5rem', fontWeight: '900', color: glow, textShadow: `0 0 30px ${glow}`, lineHeight: 1 }}>{score}%</div>
+        <p style={{ fontSize: '0.72rem', fontWeight: '700', color: 'rgba(255,255,255,0.8)', letterSpacing: '2px', marginTop: '8px', textTransform: 'uppercase' }}>Índice de Atenção Neuro-Validada</p>
+        <p style={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.35)', marginTop: '6px' }}>{preset.nome} · {preset.bpm} BPM · {preset.emocao}</p>
+        <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', marginTop: '12px' }}>
+          {preset.paleta.map((cor, i) => <div key={i} style={{ width: '16px', height: '16px', borderRadius: '50%', background: cor, boxShadow: `0 0 8px ${cor}88` }} />)}
+        </div>
+        <p style={{ fontSize: '0.5rem', color: 'rgba(255,255,255,0.15)', marginTop: '10px' }}>intencao-visual.vercel.app · {new Date().toLocaleDateString('pt-BR')}</p>
+      </div>
+
+      <button onClick={gerarCertificado} disabled={gerando}
+        style={{ width: '100%', padding: '14px', borderRadius: '999px', border: 'none', background: gerado ? 'rgba(0,200,100,0.15)' : gerando ? 'rgba(255,255,255,0.04)' : `linear-gradient(135deg, ${glow}, #e94560)`, color: gerando ? 'rgba(255,255,255,0.3)' : gerado ? '#00c864' : '#fff', fontSize: '0.85rem', fontWeight: '700', cursor: gerando ? 'not-allowed' : 'pointer', letterSpacing: '1px', textTransform: 'uppercase', transition: 'all 0.3s', boxShadow: gerando || gerado ? 'none' : `0 0 30px ${glow}44` }}>
+        {gerando ? '⏳ Gerando...' : gerado ? '✓ Certificado baixado!' : '🏆 Baixar Certificado PNG'}
+      </button>
+      <p style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.18)', textAlign: 'center', marginTop: '8px' }}>
+        Compartilhe com clientes para validar suas escolhas criativas com dados biológicos
+      </p>
+    </div>
+  )
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// COMPONENTES EXISTENTES
+// ══════════════════════════════════════════════════════════════════════
+const NEURO_DATA_REF = NEURO_DATA // alias para uso no ContadorDeteccao
 
 const TEMPLATES = [
   { label: '⚡ Trap luxuoso', prompt: 'clipe estilo trap luxo cartier poder status' },
@@ -242,27 +459,17 @@ const TEMPLATES = [
   { label: '◻ Minimalista', prompt: 'minimalista clean moderno elegante simples' },
 ]
 
-function FeedbackEmocional({ glow, kitId, token }) {
+function FeedbackEmocional({ glow }) {
   const [nota, setNota] = useState(null)
   const [enviado, setEnviado] = useState(false)
   const emojis = ['😕', '😐', '🙂', '😊', '🔥']
-
-  async function enviar(n) {
-    setNota(n); setEnviado(true)
-  }
-
-  if (enviado) return (
-    <div style={{ textAlign: 'center', padding: '16px', color: glow, fontSize: '0.85rem', fontWeight: '700' }}>
-      ✓ Obrigado pelo feedback!
-    </div>
-  )
-
+  if (enviado) return <div style={{ textAlign: 'center', padding: '16px', color: glow, fontSize: '0.85rem', fontWeight: '700' }}>✓ Obrigado pelo feedback!</div>
   return (
     <div style={{ textAlign: 'center', padding: '20px' }}>
       <p style={{ fontSize: '0.6rem', letterSpacing: '3px', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', marginBottom: '14px' }}>🎯 Esse kit capturou sua emoção?</p>
       <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
         {emojis.map((e, i) => (
-          <button key={i} onClick={() => enviar(i + 1)}
+          <button key={i} onClick={() => { setNota(i + 1); setEnviado(true) }}
             style={{ fontSize: '1.5rem', background: nota === i + 1 ? `${glow}22` : 'transparent', border: `1px solid ${nota === i + 1 ? glow : 'rgba(255,255,255,0.1)'}`, borderRadius: '12px', padding: '8px 12px', cursor: 'pointer', transition: 'all 0.2s' }}
             onMouseEnter={ev => ev.currentTarget.style.transform = 'scale(1.2)'}
             onMouseLeave={ev => ev.currentTarget.style.transform = 'scale(1)'}
@@ -283,7 +490,7 @@ function VariacoesKit({ emocao, onSelecionar, glow }) {
       <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
         {matches.map((p, i) => (
           <button key={i} onClick={() => onSelecionar(p)}
-            style={{ padding: '10px 18px', borderRadius: '999px', border: `1px solid ${p.glow}44`, background: `${p.glow}12`, color: p.glow, fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer', transition: 'all 0.2s', letterSpacing: '1px' }}
+            style={{ padding: '10px 18px', borderRadius: '999px', border: `1px solid ${p.glow}44`, background: `${p.glow}12`, color: p.glow, fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer', transition: 'all 0.2s' }}
             onMouseEnter={ev => { ev.currentTarget.style.background = `${p.glow}28`; ev.currentTarget.style.transform = 'scale(1.05)' }}
             onMouseLeave={ev => { ev.currentTarget.style.background = `${p.glow}12`; ev.currentTarget.style.transform = 'scale(1)' }}
           >{p.nome}</button>
@@ -293,11 +500,32 @@ function VariacoesKit({ emocao, onSelecionar, glow }) {
   )
 }
 
+function ContadorDeteccao({ emocao, preset, glow }) {
+  const [palavrasDetectadas, setPalavrasDetectadas] = useState([])
+  useEffect(() => {
+    if (!emocao || emocao.length < 3 || !preset) { setPalavrasDetectadas([]); return }
+    const lower = emocao.toLowerCase()
+    setPalavrasDetectadas(preset.keywords.filter(k => lower.includes(k)))
+  }, [emocao, preset])
+  if (!preset || palavrasDetectadas.length === 0) return null
+  return (
+    <div style={{ marginBottom: '16px', animation: 'fadeUp 0.4s ease both' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+        <span style={{ fontSize: '0.55rem', letterSpacing: '2px', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase' }}>🧬 Sinal detectado:</span>
+        {palavrasDetectadas.map((p, i) => (
+          <span key={i} style={{ padding: '3px 10px', borderRadius: '999px', background: `${glow}18`, border: `1px solid ${glow}44`, color: glow, fontSize: '0.7rem', fontWeight: '700' }}>{p}</span>
+        ))}
+        <span style={{ fontSize: '0.65rem', color: glow, fontWeight: '700' }}>→ {preset.nome}</span>
+      </div>
+    </div>
+  )
+}
+
 function ShareToast({ url, onClose }) {
   const [copied, setCopied] = useState(false)
   function copy() { navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 2000) }
   return (
-    <div style={{ position: 'fixed', bottom: '32px', left: '50%', transform: 'translateX(-50%)', zIndex: 1000, animation: 'fadeUp 0.4s ease both', background: 'rgba(10,10,20,0.95)', border: '1px solid rgba(124,58,237,0.4)', borderRadius: '20px', padding: '20px 24px', backdropFilter: 'blur(20px)', minWidth: '320px', maxWidth: '480px', boxShadow: '0 0 60px rgba(124,58,237,0.3)' }}>
+    <div style={{ position: 'fixed', bottom: '32px', left: '50%', transform: 'translateX(-50%)', zIndex: 1000, animation: 'fadeUp 0.4s ease both', background: 'rgba(10,10,20,0.95)', border: '1px solid rgba(124,58,237,0.4)', borderRadius: '20px', padding: '20px 24px', backdropFilter: 'blur(20px)', minWidth: '320px', maxWidth: '480px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
         <p style={{ fontSize: '0.75rem', color: '#a78bfa', fontWeight: '700', letterSpacing: '2px', textTransform: 'uppercase' }}>🔗 Link gerado!</p>
         <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', fontSize: '1rem' }}>✕</button>
@@ -338,7 +566,8 @@ function PaginaKitPublico({ shareId }) {
         </div>
         <div style={{ textAlign: 'center', padding: '40px', background: `${glow}08`, border: `1px solid ${glow}22`, borderRadius: '24px' }}>
           <p style={{ fontSize: '1.2rem', fontWeight: '900', color: glow, marginBottom: '8px', textShadow: `0 0 20px ${glow}` }}>Kit de Intenção Visual</p>
-          <button onClick={() => window.location.href = '/'} style={{ padding: '14px 36px', borderRadius: '999px', border: 'none', background: 'linear-gradient(135deg, #7c3aed, #e94560)', color: '#fff', fontSize: '0.9rem', fontWeight: '700', cursor: 'pointer', letterSpacing: '2px', textTransform: 'uppercase' }}>Criar meu kit grátis →</button>
+          <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.85rem', marginBottom: '24px' }}>Neurocinematografia para criadores de vídeo</p>
+          <button onClick={() => window.location.href = '/'} style={{ padding: '14px 36px', borderRadius: '999px', border: 'none', background: 'linear-gradient(135deg, #7c3aed, #e94560)', color: '#fff', fontSize: '0.9rem', fontWeight: '700', cursor: 'pointer' }}>Criar meu kit grátis →</button>
         </div>
       </div>
     </div>
@@ -454,12 +683,15 @@ function TelaAuth({ onLogin }) {
 }
 
 const PRESETS = {
-  blade: { keywords: ['blade','cyberpunk','neon','futurista','tech','matrix','cyber'], nome: 'Cyberpunk', emocao: 'Tensão · Adrenalina · Desorientação', paleta: ['#0a0a0f','#00fff7','#7c3aed','#ff006e'], tipografia: 'Rajdhani Bold', ritmo: '32 cortes/min', bpm: 140, iluminacao: 'Neon lateral · Chuva de luz', enquadramento: 'Close extremo', bg: ['#0a0a0f','#0d1f3c','#1a0533'], glow: '#00fff7', cenas: [{desc:'Silhueta contra neon',luz:'Contraluz ciano',cam:'Close extremo'},{desc:'Chuva em slow motion',luz:'Reflexo no asfalto',cam:'Travelling lateral'},{desc:'Olhar direto câmera',luz:'LED lateral duro',cam:'Close olhos'}], audio: {tipo:'cyberpunk',descricao:'Sintetizador metálico',efeito:'Gera tensão'} },
-  poder: { keywords: ['poder','luxo','cartier','sdm','rap','trap','gold','golden','luxury','power'], nome: 'Luxo Cinematográfico', emocao: 'Poder · Status · Inevitabilidade', paleta: ['#0d0500','#8B3A00','#C8860A','#F5D78E'], tipografia: 'Montserrat Black', ritmo: '22 cortes/min', bpm: 95, iluminacao: 'Tungstênio quente · Sombra épica', enquadramento: 'Ângulo baixo', bg: ['#0d0500','#1a0800','#2d1200'], glow: '#C8860A', cenas: [{desc:'Detalhe relógio dourado',luz:'Luz dourada lateral',cam:'Macro extremo'},{desc:'Artista em ambiente luxuoso',luz:'Tungstênio + fill suave',cam:'Ângulo baixo'},{desc:'Fumaça em slow motion',luz:'Backlight dourado',cam:'Travelling lateral'}], audio: {tipo:'trap',descricao:'Kick 808 grave',efeito:'Ativa poder e status'} },
-  romance: { keywords: ['romance','amor','suave','delicado','intimidade','saudade','love','soft'], nome: 'Romance Etéreo', emocao: 'Nostalgia · Vulnerabilidade · Conexão', paleta: ['#1a0010','#8B0050','#FF6B9D','#FFD6E8'], tipografia: 'Cormorant Garamond', ritmo: '12 cortes/min', bpm: 72, iluminacao: 'Luz difusa · Bokeh profundo', enquadramento: 'Plano aberto', bg: ['#1a0010','#2d0020','#1a0a1a'], glow: '#FF6B9D', cenas: [{desc:'Mãos se tocando',luz:'Janela natural difusa',cam:'Close olhos'},{desc:'Olhar perdido na distância',luz:'Golden hour',cam:'Plano aberto'},{desc:'Detalhe — lágrima',luz:'Rim light suave',cam:'Macro extremo'}], audio: {tipo:'romance',descricao:'Pad suave + piano',efeito:'Ativa oxitocina'} },
-  misterio: { keywords: ['mistério','sombrio','dark','noir','suspense','thriller','crime','mystery'], nome: 'Noir Contemporâneo', emocao: 'Ansiedade · Fascínio · Perigo', paleta: ['#000000','#0a0a0a','#1a1a2e','#4a4a6a'], tipografia: 'Playfair Display', ritmo: '18 cortes/min', bpm: 85, iluminacao: 'Contraluz duro · Sombra absoluta', enquadramento: 'Plano médio', bg: ['#000000','#0a0a1a','#050510'], glow: '#6a6aaa', cenas: [{desc:'Rosto metade na sombra',luz:'Single key lateral',cam:'Close extremo'},{desc:'Corredor com névoa',luz:'Luz de fundo fraca',cam:'Plano médio'},{desc:'Detalhe — mão nervosa',luz:'Sem fill, só key',cam:'Close olhos'}], audio: {tipo:'noir',descricao:'Baixo profundo',efeito:'Ativa amígdala'} },
-  epico: { keywords: ['épico','guerra','batalha','herói','dune','grandioso','epic','war','hero'], nome: 'Épico Cinematográfico', emocao: 'Grandiosidade · Sacrifício · Destino', paleta: ['#0a0500','#3d1a00','#8B4513','#DAA520'], tipografia: 'Cinzel Bold', ritmo: '18 cortes/min', bpm: 88, iluminacao: 'Luz épica lateral · Névoa dramática', enquadramento: 'Grande angular', bg: ['#0a0500','#1a0800','#2d1500'], glow: '#DAA520', cenas: [{desc:'Exército no horizonte',luz:'Pôr do sol épico',cam:'Plano aberto'},{desc:'Herói de costas',luz:'Backlight dourado',cam:'Ângulo baixo'},{desc:'Olhar determinado',luz:'Luz lateral dura',cam:'Close extremo'}], audio: {tipo:'noir',descricao:'Orquestra épica',efeito:'Grandiosidade'} },
-  minimalista: { keywords: ['minimalista','clean','simples','moderno','elegante','minimal','simple','modern'], nome: 'Minimalismo Moderno', emocao: 'Clareza · Confiança · Sofisticação', paleta: ['#ffffff','#f5f5f5','#333333','#000000'], tipografia: 'Helvetica Neue Light', ritmo: '15 cortes/min', bpm: 80, iluminacao: 'Luz difusa branca · Alto key', enquadramento: 'Plano médio', bg: ['#0a0a0a','#111111','#1a1a1a'], glow: '#ffffff', cenas: [{desc:'Produto em fundo branco',luz:'Softbox frontal',cam:'Plano médio'},{desc:'Detalhe de textura',luz:'Luz rasante lateral',cam:'Macro extremo'},{desc:'Pessoa em ambiente clean',luz:'Natural difusa',cam:'Plano aberto'}], audio: {tipo:'romance',descricao:'Piano minimalista',efeito:'Clareza e foco'} },
+  blade: { keywords: ['blade','cyberpunk','neon','futurista','tech','matrix','cyber'], nome: 'Cyberpunk', emocao: 'Tensão · Adrenalina · Desorientação', paleta: ['#0a0a0f','#00fff7','#7c3aed','#ff006e'], tipografia: 'Rajdhani Bold', ritmo: '32 cortes/min', bpm: 140, iluminacao: 'Neon lateral · Chuva de luz', enquadramento: 'Close extremo', bg: ['#0a0a0f','#0d0d1a','#050508'], glow: '#00fff7', cenas: [{desc:'Olho com reflexo neon',cam:'Close extremo',luz:'Neon ciano lateral'},{desc:'Corredor cyberpunk',cam:'Travelling lateral',luz:'Luz de néon pulsante'},{desc:'Cidade distópica',cam:'Grande angular',luz:'Glow roxo no horizonte'}], audio: {tipo:'cyberpunk',descricao:'Sintetizador metálico',efeito:'Gera tensão'} },
+  poder: { keywords: ['poder','luxo','cartier','sdm','rap','trap','gold','golden','luxury','power','urgência','força'], nome: 'Luxo Cinematográfico', emocao: 'Poder · Status · Inevitabilidade', paleta: ['#0d0500','#8B3A00','#C8860A','#F5D78E'], tipografia: 'Montserrat Black', ritmo: '22 cortes/min', bpm: 95, iluminacao: 'Tungstênio quente · Sombra épica', enquadramento: 'Ângulo baixo', bg: ['#0d0500','#1a0a00','#0a0300'], glow: '#C8860A', cenas: [{desc:'Figura imponente em contraluz',cam:'Ângulo baixo',luz:'Tungstênio quente'},{desc:'Detalhe dourado — relógio',cam:'Close extremo',luz:'Luz quente pontual'},{desc:'Skyline noturno dourado',cam:'Plano aberto',luz:'Sombra épica'}], audio: {tipo:'trap',descricao:'Kick 808 grave',efeito:'Ativa poder e status'} },
+  romance: { keywords: ['romance','amor','suave','delicado','intimidade','saudade','love','soft'], nome: 'Romance Etéreo', emocao: 'Nostalgia · Vulnerabilidade · Conexão', paleta: ['#1a0010','#8B0050','#FF6B9D','#FFD6E8'], tipografia: 'Cormorant Garamond', ritmo: '12 cortes/min', bpm: 72, iluminacao: 'Luz difusa · Bokeh profundo', enquadramento: 'Plano aberto', bg: ['#1a0010','#2d0020','#0d0008'], glow: '#FF6B9D', cenas: [{desc:'Dois sob luz dourada difusa',cam:'Plano aberto',luz:'Bokeh profundo'},{desc:'Mãos entrelaçadas',cam:'Close extremo',luz:'Luz difusa lateral'},{desc:'Olhar úmido',cam:'Macro extremo',luz:'Catch light suave'}], audio: {tipo:'romance',descricao:'Pad suave + piano',efeito:'Ativa oxitocina'} },
+  misterio: { keywords: ['mistério','sombrio','dark','noir','suspense','thriller','crime','mystery'], nome: 'Noir Contemporâneo', emocao: 'Ansiedade · Fascínio · Perigo', paleta: ['#000000','#0a0a0a','#1a1a2e','#4a4a6a'], tipografia: 'Playfair Display', ritmo: '18 cortes/min', bpm: 85, iluminacao: 'Contraluz duro · Sombra absoluta', enquadramento: 'Plano médio', bg: ['#000000','#050508','#020204'], glow: '#4a4a6a', cenas: [{desc:'Corredor com névoa',cam:'Plano médio',luz:'Contraluz duro'},{desc:'Sombra de rosto fragmentada',cam:'Close extremo',luz:'Sombra absoluta'},{desc:'Figura solitária na chuva',cam:'Ângulo baixo',luz:'Luz de poste distante'}], audio: {tipo:'noir',descricao:'Baixo profundo',efeito:'Ativa amígdala'} },
+  epico: { keywords: ['épico','guerra','batalha','herói','dune','grandioso','epic','war','hero','histórico'], nome: 'Épico Cinematográfico', emocao: 'Grandiosidade · Sacrifício · Destino', paleta: ['#0a0500','#3d1a00','#8B4513','#DAA520'], tipografia: 'Cinzel Bold', ritmo: '18 cortes/min', bpm: 88, iluminacao: 'Luz épica lateral · Névoa dramática', enquadramento: 'Grande angular', bg: ['#0a0500','#1a0a00','#050200'], glow: '#DAA520', cenas: [{desc:'Exército no horizonte',cam:'Grande angular',luz:'Luz épica lateral'},{desc:'Herói erguendo espada',cam:'Ângulo baixo',luz:'Contraluz solar'},{desc:'Marcha épica',cam:'Travelling lateral',luz:'Névoa dourada'}], audio: {tipo:'noir',descricao:'Orquestra épica',efeito:'Grandiosidade'} },
+  minimalista: { keywords: ['minimalista','clean','simples','moderno','elegante','minimal','simple','modern','corporativo'], nome: 'Minimalismo Moderno', emocao: 'Clareza · Confiança · Sofisticação', paleta: ['#ffffff','#f5f5f5','#333333','#000000'], tipografia: 'Helvetica Neue Light', ritmo: '15 cortes/min', bpm: 80, iluminacao: 'Luz difusa branca · Alto key', enquadramento: 'Plano médio', bg: ['#1a1a1a','#222222','#111111'], glow: '#ffffff', cenas: [{desc:'Produto sobre fundo branco',cam:'Plano médio',luz:'Alto key difuso'},{desc:'Detalhe de textura',cam:'Macro extremo',luz:'Luz rente à superfície'},{desc:'Espaço vazio significativo',cam:'Grande angular',luz:'Luz neutra branca'}], audio: {tipo:'romance',descricao:'Piano minimalista',efeito:'Clareza e foco'} },
+  melancolia: { keywords: ['melancolia','triste','saudade','chuva','solidão','lo-fi','chill'], nome: 'Melancolia Urbana', emocao: 'Saudade · Introspecção · Beleza Triste', paleta: ['#0d1117','#1a2030','#2d4060','#6080a0'], tipografia: 'Georgia Italic', ritmo: '10 cortes/min', bpm: 68, iluminacao: 'Luz fria difusa · Chuva nas janelas', enquadramento: 'Plano aberto', bg: ['#0d1117','#111820','#080d12'], glow: '#6080a0', cenas: [{desc:'Janela com chuva — cidade ao fundo',cam:'Plano aberto',luz:'Luz fria difusa'},{desc:'Mão tocando vidro molhado',cam:'Close extremo',luz:'Reflexo de neon na chuva'},{desc:'Rua vazia de madrugada',cam:'Travelling lateral',luz:'Postes distantes'}], audio: {tipo:'lofi',descricao:'Piano lo-fi + chuva',efeito:'Ativa memória emocional'} },
+  euforia: { keywords: ['euforia','festa','hype','energia','dança','rave','festival'], nome: 'Euforia Coletiva', emocao: 'Alegria · Energia · Pertencimento', paleta: ['#ff006e','#fb5607','#ffbe0b','#8338ec'], tipografia: 'Bebas Neue', ritmo: '40 cortes/min', bpm: 128, iluminacao: 'Estrobo · Laser colorido', enquadramento: 'Close extremo', bg: ['#0a0005','#150010','#050008'], glow: '#ff006e', cenas: [{desc:'Rosto em êxtase na multidão',cam:'Close extremo',luz:'Estrobo colorido'},{desc:'Crowd levantando as mãos',cam:'Grande angular',luz:'Laser verde e rosa'},{desc:'Movimento frenético de dança',cam:'Travelling lateral',luz:'Luz estroboscópica'}], audio: {tipo:'eletronica',descricao:'Bass drop + synth eufórico',efeito:'Libera dopamina'} },
+  natureza: { keywords: ['natureza','floresta','mar','montanha','terra','zen','paz','calma'], nome: 'Natureza Visceral', emocao: 'Serenidade · Conexão · Pertencimento', paleta: ['#0a1a0a','#1a3020','#2d5a2d','#7ab87a'], tipografia: 'Lora Regular', ritmo: '8 cortes/min', bpm: 60, iluminacao: 'Luz natural filtrada · Golden hour', enquadramento: 'Grande angular', bg: ['#0a1a0a','#0d2010','#060f06'], glow: '#7ab87a', cenas: [{desc:'Floresta densa com raios de sol',cam:'Grande angular',luz:'Golden hour filtrado'},{desc:'Folha com gota de orvalho',cam:'Macro extremo',luz:'Luz natural suave'},{desc:'Rio entre pedras',cam:'Travelling lateral',luz:'Reflexo de água'}], audio: {tipo:'ambient',descricao:'Sons de floresta + pad etéreo',efeito:'Reduz cortisol'} },
 }
 
 const FORMATOS = { youtube:{label:'YouTube',ratio:'16:9',icon:'▶',w:320,h:180}, instagram:{label:'Instagram',ratio:'1:1',icon:'◈',w:240,h:240}, filme:{label:'Filme',ratio:'2.39:1',icon:'◻',w:320,h:134}, clipe:{label:'Clipe',ratio:'9:16',icon:'◆',w:150,h:267} }
@@ -557,9 +789,9 @@ function BPMVisual({ bpm, glow, active }) {
 
 function CameraView({ tipo, glow }) {
   const configs = {
-    'Close extremo': (<svg viewBox="0 0 200 120" style={{width:'100%',height:'100%'}}><rect x="60" y="20" width="80" height="80" rx="40" fill="none" stroke={glow} strokeWidth="1.5" opacity="0.4"/><rect x="75" y="35" width="50" height="50" rx="25" fill="none" stroke={glow} strokeWidth="1.5" opacity="0.7"/><circle cx="100" cy="60" r="14" fill={glow} opacity="0.15"/><circle cx="100" cy="60" r="6" fill={glow} opacity="0.6"/><text x="100" y="108" textAnchor="middle" fill={glow} fontSize="7" opacity="0.5" letterSpacing="2">EXTREME CLOSE-UP</text></svg>),
+    'Close extremo': (<svg viewBox="0 0 200 120" style={{width:'100%',height:'100%'}}><rect x="60" y="20" width="80" height="80" rx="40" fill="none" stroke={glow} strokeWidth="1.5" opacity="0.4"/><circle cx="100" cy="60" r="14" fill={glow} opacity="0.15"/><circle cx="100" cy="60" r="6" fill={glow} opacity="0.6"/><text x="100" y="108" textAnchor="middle" fill={glow} fontSize="7" opacity="0.5" letterSpacing="2">EXTREME CLOSE-UP</text></svg>),
     'Ângulo baixo': (<svg viewBox="0 0 200 120" style={{width:'100%',height:'100%'}}><polygon points="100,15 30,95 170,95" fill="none" stroke={glow} strokeWidth="1.5" opacity="0.5"/><circle cx="100" cy="15" r="5" fill={glow} opacity="0.8"/><text x="100" y="116" textAnchor="middle" fill={glow} fontSize="7" opacity="0.5" letterSpacing="2">LOW ANGLE</text></svg>),
-    'Macro extremo': (<svg viewBox="0 0 200 120" style={{width:'100%',height:'100%'}}><circle cx="100" cy="55" r="35" fill="none" stroke={glow} strokeWidth="1.5" opacity="0.3"/><circle cx="100" cy="55" r="20" fill="none" stroke={glow} strokeWidth="1.5" opacity="0.5"/><circle cx="100" cy="55" r="8" fill={glow} opacity="0.2"/><circle cx="100" cy="55" r="3" fill={glow} opacity="0.9"/><text x="100" y="108" textAnchor="middle" fill={glow} fontSize="7" opacity="0.5" letterSpacing="2">MACRO LENS</text></svg>),
+    'Macro extremo': (<svg viewBox="0 0 200 120" style={{width:'100%',height:'100%'}}><circle cx="100" cy="55" r="35" fill="none" stroke={glow} strokeWidth="1.5" opacity="0.3"/><circle cx="100" cy="55" r="8" fill={glow} opacity="0.2"/><circle cx="100" cy="55" r="3" fill={glow} opacity="0.9"/><text x="100" y="108" textAnchor="middle" fill={glow} fontSize="7" opacity="0.5" letterSpacing="2">MACRO LENS</text></svg>),
     'Plano aberto': (<svg viewBox="0 0 200 120" style={{width:'100%',height:'100%'}}><rect x="15" y="25" width="170" height="70" rx="4" fill="none" stroke={glow} strokeWidth="1.5" opacity="0.4"/><rect x="85" y="45" width="30" height="30" fill="none" stroke={glow} strokeWidth="1" opacity="0.6"/><text x="100" y="108" textAnchor="middle" fill={glow} fontSize="7" opacity="0.5" letterSpacing="2">WIDE SHOT</text></svg>),
     'Travelling lateral': (<svg viewBox="0 0 200 120" style={{width:'100%',height:'100%'}}><rect x="70" y="45" width="60" height="30" rx="3" fill="none" stroke={glow} strokeWidth="1.5" opacity="0.5"/><polygon points="20,55 5,60 20,65" fill={glow} opacity="0.6"/><line x1="20" y1="60" x2="70" y2="60" stroke={glow} strokeWidth="1.5" opacity="0.4" strokeDasharray="5 3"/><text x="100" y="108" textAnchor="middle" fill={glow} fontSize="7" opacity="0.5" letterSpacing="2">TRACKING SHOT</text></svg>),
     'Plano médio': (<svg viewBox="0 0 200 120" style={{width:'100%',height:'100%'}}><rect x="40" y="15" width="120" height="90" rx="4" fill="none" stroke={glow} strokeWidth="1.5" opacity="0.4"/><rect x="75" y="25" width="50" height="45" fill="none" stroke={glow} strokeWidth="1" opacity="0.6"/><text x="100" y="112" textAnchor="middle" fill={glow} fontSize="7" opacity="0.5" letterSpacing="2">MEDIUM SHOT</text></svg>),
@@ -568,6 +800,9 @@ function CameraView({ tipo, glow }) {
   return <div style={{width:'100%',height:'100px'}}>{configs[tipo]||configs['Plano médio']}</div>
 }
 
+// ══════════════════════════════════════════════════════════════════════
+// MAIN APP
+// ══════════════════════════════════════════════════════════════════════
 export default function App() {
   const t = useT()
   const isRTL = detectLang() === 'ar'
@@ -726,7 +961,6 @@ export default function App() {
         {/* Gerar Kit */}
         {aba === 'gerar' && (
           <div style={{ animation: 'fadeUp 0.5s ease both' }}>
-
             {/* Templates */}
             <div style={{ marginBottom: '24px' }}>
               <p style={{ fontSize: '0.6rem', letterSpacing: '3px', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', marginBottom: '12px' }}>⚡ Começar com um estilo</p>
@@ -778,25 +1012,13 @@ export default function App() {
             {/* Contador de detecção */}
             <ContadorDeteccao emocao={emocao} preset={active} glow={active?.glow || '#7c3aed'} />
 
-            {/* ── ALGORITMO DO TÉDIO — textarea envolvido pelo TedioDetector ── */}
+            {/* Textarea com TedioDetector */}
             <TedioDetector texto={emocao} glow={active?.glow}>
               <textarea
                 value={emocao}
                 onChange={e => setEmocao(e.target.value)}
                 placeholder={t.placeholder}
-                style={{
-                  width: '100%', height: '110px',
-                  background: 'rgba(255,255,255,0.02)',
-                  color: '#fff',
-                  border: `1px solid ${active ? active.glow+'44' : 'rgba(124,58,237,0.2)'}`,
-                  borderRadius: '20px', padding: '20px 24px',
-                  fontSize: '0.95rem', resize: 'none',
-                  boxSizing: 'border-box', outline: 'none', lineHeight: 1.6,
-                  backdropFilter: 'blur(10px)',
-                  transition: 'border 0.5s ease',
-                  boxShadow: active ? `0 0 30px ${active.glow}11` : 'none',
-                  display: 'block',
-                }}
+                style={{ width: '100%', height: '110px', background: 'rgba(255,255,255,0.02)', color: '#fff', border: `1px solid ${active ? active.glow+'44' : 'rgba(124,58,237,0.2)'}`, borderRadius: '20px', padding: '20px 24px', fontSize: '0.95rem', resize: 'none', boxSizing: 'border-box', outline: 'none', lineHeight: 1.6, backdropFilter: 'blur(10px)', transition: 'border 0.5s ease', boxShadow: active ? `0 0 30px ${active.glow}11` : 'none', display: 'block' }}
               />
             </TedioDetector>
 
@@ -817,6 +1039,8 @@ export default function App() {
             {/* Resultado */}
             {resultado && (
               <div style={{ marginTop: '48px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+
+                {/* Card de estilo */}
                 <TiltCard glowColor={resultado.glow} style={{ textAlign: 'center', padding: '28px', background: `${resultado.glow}0e`, border: `1px solid ${resultado.glow}33`, borderRadius: '24px', animation: 'tiltIn 0.6s ease both' }}>
                   <p style={{ fontSize: '0.55rem', letterSpacing: '3px', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', marginBottom: '8px' }}>{t.detectedStyle}</p>
                   <p style={{ fontSize: '1.4rem', fontWeight: '900', color: resultado.glow, marginBottom: '6px', textShadow: `0 0 30px ${resultado.glow}` }}>{resultado.nome}</p>
@@ -829,24 +1053,44 @@ export default function App() {
                   )}
                 </TiltCard>
 
+                {/* AHA #2 — Análise Neurocinematográfica */}
                 <TiltCard glowColor={resultado.glow} style={{ background: `linear-gradient(135deg, rgba(0,0,0,0.6), ${resultado.glow}08)`, border: `1px solid ${resultado.glow}33`, borderRadius: '24px', overflow: 'hidden' }}>
                   <EfeitoPsicologico preset={resultado} glow={resultado.glow} />
                 </TiltCard>
 
+                {/* AHA #3 — Simulador Comparativo */}
                 <TiltCard glowColor={resultado.glow} style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${resultado.glow}18`, borderRadius: '24px' }}>
-                  <FeedbackEmocional glow={resultado.glow} kitId={kitId} token={user.token} />
+                  <SimuladorComparativo preset={resultado} glow={resultado.glow} />
                 </TiltCard>
 
+                {/* AHA #4 — Injeção de Dopamina */}
+                <TiltCard glowColor={resultado.glow} style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${resultado.glow}18`, borderRadius: '24px' }}>
+                  <InjecaoDopamina preset={resultado} glow={resultado.glow} />
+                </TiltCard>
+
+                {/* AHA #5 — Certificado de Impacto Viral */}
+                <TiltCard glowColor={resultado.glow} style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${resultado.glow}28`, borderRadius: '24px' }}>
+                  <CertificadoImpacto preset={resultado} glow={resultado.glow} kitId={kitId} />
+                </TiltCard>
+
+                {/* Feedback emocional */}
+                <TiltCard glowColor={resultado.glow} style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${resultado.glow}18`, borderRadius: '24px' }}>
+                  <FeedbackEmocional glow={resultado.glow} />
+                </TiltCard>
+
+                {/* Export Card */}
                 <TiltCard glowColor={resultado.glow} style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${resultado.glow}28`, borderRadius: '24px', padding: '24px' }}>
                   <p style={{ fontSize: '0.55rem', letterSpacing: '3px', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', marginBottom: '16px' }}>🎬 Exportar para redes sociais</p>
                   <ExportCard preset={resultado} formato={formato} miniplayerRef={miniplayerRef} />
                 </TiltCard>
 
+                {/* BPM */}
                 <TiltCard glowColor={resultado.glow} style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${resultado.glow}18`, borderRadius: '24px', padding: '24px' }}>
                   <p style={{ fontSize: '0.55rem', letterSpacing: '3px', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', marginBottom: '16px' }}>{t.bpmLabel}</p>
                   <BPMVisual bpm={resultado.bpm} glow={resultado.glow} active={true} />
                 </TiltCard>
 
+                {/* Paleta */}
                 <TiltCard glowColor={resultado.glow} style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${resultado.glow}18`, borderRadius: '24px', padding: '24px' }}>
                   <p style={{ fontSize: '0.55rem', letterSpacing: '3px', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', marginBottom: '16px' }}>{t.paletteLabel}</p>
                   <div style={{ display: 'flex', gap: '10px' }}>
@@ -862,6 +1106,7 @@ export default function App() {
                   </div>
                 </TiltCard>
 
+                {/* Câmera / Cenas */}
                 <TiltCard glowColor={resultado.glow} style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${resultado.glow}18`, borderRadius: '24px', padding: '24px' }}>
                   <p style={{ fontSize: '0.55rem', letterSpacing: '3px', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', marginBottom: '16px' }}>{t.framingLabel}</p>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
@@ -875,6 +1120,7 @@ export default function App() {
                   </div>
                 </TiltCard>
 
+                {/* Grid de infos */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   {[{label:t.typographyLabel,valor:resultado.tipografia},{label:t.rhythmLabel,valor:resultado.ritmo},{label:t.lightLabel,valor:resultado.iluminacao},{label:t.formatLabel,valor:`${FORMATOS[formato].label} · ${FORMATOS[formato].ratio}`}].map(item => (
                     <TiltCard key={item.label} glowColor={resultado.glow} style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${resultado.glow}14`, borderRadius: '20px', padding: '20px' }}>
@@ -884,6 +1130,7 @@ export default function App() {
                   ))}
                 </div>
 
+                {/* Cenas detalhadas */}
                 <TiltCard glowColor={resultado.glow} style={{ background: `linear-gradient(135deg, ${resultado.glow}0e, rgba(233,69,96,0.05))`, border: `1px solid ${resultado.glow}28`, borderRadius: '24px', padding: '24px' }}>
                   <p style={{ fontSize: '0.55rem', letterSpacing: '3px', color: 'rgba(255,255,255,0.2)', textTransform: 'uppercase', marginBottom: '16px' }}>{t.sceneLabel}</p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -898,6 +1145,7 @@ export default function App() {
                     ))}
                   </div>
                 </TiltCard>
+
               </div>
             )}
           </div>
